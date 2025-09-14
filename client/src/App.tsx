@@ -7,10 +7,10 @@ import Layout from "@/components/layout";
 import Dashboard from "@/pages/dashboard";
 import Runlists from "@/pages/runlists";
 import BuyBox from "@/pages/buy-box";
-import Inspections from "@/pages/inspections";
+import InspectionsBento from "@/pages/inspections-bento";
 import InspectionResults from "@/pages/inspection-results";
 import InspectionTemplates from "@/pages/inspection-templates";
-import Dealers from "@/pages/dealers";
+import DealersBento from "@/pages/dealers-bento";
 import Inspectors from "@/pages/inspectors";
 import Auctions from "@/pages/auctions";
 import AuctionDetail from "@/pages/auction-detail";
@@ -28,16 +28,16 @@ function Router() {
   return (
     <Layout>
       <Switch>
-        <Route path="/" component={SimpleDashboard} />
-        <Route path="/old-dashboard" component={Dashboard} />
+        <Route path="/" component={Dashboard} />
+        <Route path="/simple-dashboard" component={SimpleDashboard} />
         <Route path="/runlists" component={Runlists} />
         <Route path="/buy-box" component={BuyBox} />
-        <Route path="/inspections" component={Inspections} />
+        <Route path="/inspections" component={InspectionsBento} />
         <Route path="/completed-inspections" component={CompletedInspections} />
 
         <Route path="/inspection-results" component={InspectionResults} />
         <Route path="/inspection-templates" component={InspectionTemplates} />
-        <Route path="/dealers" component={Dealers} />
+        <Route path="/dealers" component={DealersBento} />
         <Route path="/inspectors" component={Inspectors} />
         <Route path="/inspector-dashboard" component={InspectorDashboardSimple} />
         <Route path="/inspector" component={InspectorPortal} />

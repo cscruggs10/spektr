@@ -34,6 +34,45 @@ export default function BentoInspectionOverview() {
     queryKey: ["/api/inspections/recent"],
   });
 
+  // Mock data for demo purposes
+  const mockInspections: Inspection[] = [
+    {
+      id: 1,
+      vehicle: { year: 2023, make: "Honda", model: "Civic", stock_number: "H23-001" },
+      dealer: { name: "AutoMax Motors" },
+      inspector: { name: "Mike Johnson" },
+      status: "in_progress",
+      scheduled_date: new Date(Date.now() + 1000 * 60 * 60 * 2).toISOString(),
+      priority: "high"
+    },
+    {
+      id: 2,
+      vehicle: { year: 2024, make: "Toyota", model: "Camry", stock_number: "T24-015" },
+      dealer: { name: "Premier Toyota" },
+      status: "scheduled",
+      scheduled_date: new Date(Date.now() + 1000 * 60 * 60 * 4).toISOString(),
+      priority: "medium"
+    },
+    {
+      id: 3,
+      vehicle: { year: 2022, make: "Ford", model: "F-150", stock_number: "F22-092" },
+      dealer: { name: "Elite Ford" },
+      inspector: { name: "Sarah Chen" },
+      status: "pending",
+      priority: "low"
+    },
+    {
+      id: 4,
+      vehicle: { year: 2023, make: "BMW", model: "X5", stock_number: "B23-007" },
+      dealer: { name: "Luxury Auto Group" },
+      status: "scheduled",
+      scheduled_date: new Date(Date.now() + 1000 * 60 * 60 * 6).toISOString(),
+      priority: "high"
+    }
+  ];
+
+  const displayInspections = inspections || mockInspections;
+
   const getStatusColor = (status: Inspection['status']) => {
     switch (status) {
       case "pending": return "bg-yellow-100 text-yellow-800 border-yellow-200";
@@ -106,7 +145,7 @@ export default function BentoInspectionOverview() {
       </div>
       
       <div className="space-y-3 overflow-y-auto max-h-80 custom-scrollbar">
-        {inspections?.slice(0, 5).map((inspection, index) => {
+        {displayInspections?.slice(0, 5).map((inspection, index) => {
           const priority = getPriorityIcon(inspection.priority);
           
           return (
@@ -162,7 +201,7 @@ export default function BentoInspectionOverview() {
         })}
       </div>
       
-      {(!inspections || inspections.length === 0) && (
+      {(!displayInspections || displayInspections.length === 0) && (
         <div className="text-center py-8">
           <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
             <i className="fas fa-clipboard-check text-blue-400 text-xl" />

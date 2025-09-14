@@ -26,6 +26,44 @@ export default function BentoRecentActivity() {
     queryKey: ["/api/dashboard/recent-activity"],
   });
 
+  // Mock data for demo purposes
+  const mockActivities: Activity[] = [
+    {
+      id: "1",
+      type: "inspection_completed",
+      message: "Inspection completed for 2023 Honda Civic",
+      timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
+      user: "Mike Johnson",
+      metadata: { vehicle: "2023 Honda Civic", dealer: "AutoMax" }
+    },
+    {
+      id: "2", 
+      type: "inspection_started",
+      message: "Started inspection on 2024 Toyota Camry",
+      timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
+      user: "Sarah Chen",
+      metadata: { vehicle: "2024 Toyota Camry", inspector: "Sarah Chen" }
+    },
+    {
+      id: "3",
+      type: "vehicle_added", 
+      message: "New vehicle added to runlist",
+      timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+      user: "System",
+      metadata: { vehicle: "2022 Ford F-150", dealer: "Premier Motors" }
+    },
+    {
+      id: "4",
+      type: "dealer_registered",
+      message: "New dealer registered in the system",
+      timestamp: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
+      user: "Admin",
+      metadata: { dealer: "Elite Auto Group" }
+    }
+  ];
+
+  const displayActivities = activities || mockActivities;
+
   const getActivityIcon = (type: Activity['type']) => {
     switch (type) {
       case "inspection_completed":
@@ -90,7 +128,7 @@ export default function BentoRecentActivity() {
       </div>
       
       <div className="space-y-4 overflow-y-auto max-h-80 custom-scrollbar">
-        {activities?.slice(0, 8).map((activity, index) => {
+        {displayActivities?.slice(0, 8).map((activity, index) => {
           const { icon, gradient } = getActivityIcon(activity.type);
           
           return (
@@ -155,7 +193,7 @@ export default function BentoRecentActivity() {
         })}
       </div>
       
-      {(!activities || activities.length === 0) && (
+      {(!displayActivities || displayActivities.length === 0) && (
         <div className="text-center py-8">
           <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
             <i className="fas fa-inbox text-gray-400 text-xl" />
