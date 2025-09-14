@@ -1,0 +1,78 @@
+import { v2 as cloudinary } from 'cloudinary';
+import { CloudinaryStorage } from 'multer-storage-cloudinary';
+import multer from 'multer';
+
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+// Configure Cloudinary storage for multer
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: (req: any, file: any) => {
+    const inspectionId = req.params.id;
+    const timestamp = Date.now();
+    const originalName = file.originalname.split('.')[0];
+    
+    // Determine resource type based on MIME type
+    let resourceType = 'raw';
+    if (file.mimetype.startsWith('image/')) {
+      resourceType = 'image';
+    } else if (file.mimetype.startsWith('video/')) {
+      resourceType = 'video';
+    } else if (file.mimetype.startsWith('audio/')) {
+      resourceType = 'video'; // Cloudinary treats audio as video resource type
+    }
+    
+    // Add optimization parameters
+    const baseParams: any = {
+      folder: 'auto-inspections',
+      resource_type: resourceType,
+      public_id: `inspection-${inspectionId}-${originalName}-${timestamp}`,
+    };
+    
+    // Add optimization for images
+    if (file.mimetype.startsWith('image/')) {
+      baseParams.transformation = [
+        { quality: 'auto:good', fetch_format: 'auto' },
+        { width: 1920, height: 1920, crop: 'limit' }
+      ];
+    }
+    
+    // Add optimization for videos
+    if (file.mimetype.startsWith('video/')) {
+      baseParams.eager = [
+        { quality: 'auto:good', video_codec: 'h264' }
+      ];
+      baseParams.eager_async = true;
+    }
+    
+    return baseParams;
+  },
+});
+
+// Create multer upload middleware
+export const cloudinaryUpload = multer({ 
+  storage: storage,
+  limits: {
+    fileSize: 200 * 1024 * 1024, // 200MB limit for videos
+  },
+  fileFilter: (req, file, cb) => {
+    console.log(`Upload attempt - File: ${file.originalname}, MIME type: ${file.mimetype}`);
+    
+    // Accept all image, video, and audio files (including mobile formats)
+    if (file.mimetype.startsWith('image/') || 
+        file.mimetype.startsWith('video/') || 
+        file.mimetype.startsWith('audio/')) {
+      cb(null, true);
+    } else {
+      console.log(`Rejected file type: ${file.mimetype}`);
+      cb(new Error(`File type ${file.mimetype} not allowed`) as any, false);
+    }
+  }
+});
+
+export { cloudinary };
