@@ -131,6 +131,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   });
 
+  // Health check endpoint for Railway
+  app.get("/api/health", (req, res) => {
+    res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
+  });
+
   // API Routes
   const router = app.route("/api");
 
