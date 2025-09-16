@@ -105,7 +105,7 @@ function handleZodError(error: ZodError, res: Response) {
 }
 
 // Helper to log activity
-async function logActivity(userId: number, action: string, details: any = {}) {
+async function logActivity(userId: number | null, action: string, details: any = {}) {
   try {
     await storage.createActivityLog({
       user_id: userId,
@@ -2098,7 +2098,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const vehicle = await storage.createVehicle(vehicleData);
       
       // Log activity
-      await logActivity(7, "Manual vehicle created", { 
+      await logActivity(null, "Manual vehicle created", { 
         vehicle_id: vehicle.id,
         make: vehicle.make,
         model: vehicle.model,
