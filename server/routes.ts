@@ -2159,10 +2159,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return handleZodError(validation.error, res);
       }
       
-      const inspection = await storage.createInspection(validation.data);
+      // Convert scheduled_date string to Date object if it exists
+      const inspectionData = {
+        ...validation.data,
+        scheduled_date: validation.data.scheduled_date ? new Date(validation.data.scheduled_date) : null
+      };
+      
+      const inspection = await storage.createInspection(inspectionData);
       
       // Log activity
-      await logActivity(7, "Inspection created", { 
+      await logActivity(null, "Inspection created", { 
         inspection_id: inspection.id, 
         vehicle_id: inspection.vehicle_id,
         dealer_id: inspection.dealer_id
