@@ -2065,7 +2065,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         mileage: mileage || null,
         color: color || null,
         stock_number: stock_number || null,
-        lane_number: lane_number || null,
+        lane: lane_number || null, // Map lane_number to lane for database
         run_number: run_number || null,
       };
       

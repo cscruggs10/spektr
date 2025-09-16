@@ -94,8 +94,8 @@ export default function ManualInspectionModal({
         make: "Unknown", // Will be populated via VIN lookup
         model: "Unknown", // Will be populated via VIN lookup
         year: null,
-        lane_number: data.lane_number,
-        run_number: data.run_number,
+        lane_number: data.lane_number, // API expects lane_number and maps to lane
+        run_number: parseInt(data.run_number),
         auction_id: parseInt(data.auction_id), // Pass the auction_id to create/find the manual_entries runlist
       };
 
@@ -113,7 +113,7 @@ export default function ManualInspectionModal({
         inspector_id: data.inspector_id && data.inspector_id !== "none" ? parseInt(data.inspector_id) : null,
         notes: data.notes || null,
         status: "pending",
-        inspection_date: data.inspection_date, // Pass the inspection date
+        scheduled_date: data.inspection_date, // Pass as scheduled_date to match schema
         // No template_id needed with our simplified approach
       };
 
