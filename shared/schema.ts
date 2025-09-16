@@ -139,7 +139,7 @@ export const insertAuctionSchema = createInsertSchema(auctions).pick({
   description: true,
   location: true,
   address: true,
-});
+}).partial({ address: true });
 
 // Runlists
 export const runlists = pgTable("runlists", {
