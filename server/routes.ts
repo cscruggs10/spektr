@@ -966,6 +966,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Delete an auction
+  app.delete("/api/auctions/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid auction ID" });
+      }
+
+      // Check if auction exists
+      const auction = await storage.getAuction(id);
+      if (!auction) {
+        return res.status(404).json({ error: "Auction not found" });
+      }
+
+      // Delete the auction
+      const deleted = await storage.deleteAuction(id);
+      
+      if (!deleted) {
+        return res.status(500).json({ error: "Failed to delete auction" });
+      }
+
+      // Log the activity
+      await logActivity(7, "Auction deleted", { 
+        auction_id: id, 
+        name: auction.name
+      });
+
+      res.status(200).json({ message: "Auction deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting auction:", error);
+      res.status(500).json({ error: "Failed to delete auction" });
+    }
+  });
+
   // ------------------------
   // Auction Schedule routes
   // ------------------------

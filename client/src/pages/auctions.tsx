@@ -77,6 +77,27 @@ export default function Auctions() {
     },
   });
 
+  const deleteAuctionMutation = useMutation({
+    mutationFn: async (auctionId: number) => {
+      const response = await apiRequest("DELETE", `/api/auctions/${auctionId}`);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auctions"] });
+      toast({
+        title: "Auction deleted",
+        description: "Auction has been deleted successfully.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete auction",
+        variant: "destructive",
+      });
+    },
+  });
+
   const onSubmit = (values: FormValues) => {
     createAuctionMutation.mutate(values);
   };
@@ -150,6 +171,19 @@ export default function Auctions() {
                                 <Link href={`/auctions/${auction.id}`}>
                                   <Button variant="outline" size="sm">Manage</Button>
                                 </Link>
+                                <Button 
+                                  variant="destructive" 
+                                  size="sm"
+                                  onClick={() => {
+                                    if (window.confirm(`Are you sure you want to delete "${auction.name}"? This action cannot be undone.`)) {
+                                      deleteAuctionMutation.mutate(auction.id);
+                                    }
+                                  }}
+                                  disabled={deleteAuctionMutation.isPending}
+                                >
+                                  <i className="fas fa-trash mr-1"></i>
+                                  Delete
+                                </Button>
                               </div>
                             </TableCell>
                           </TableRow>

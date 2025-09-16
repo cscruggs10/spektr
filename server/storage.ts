@@ -65,6 +65,7 @@ export interface IStorage {
   getAuctions(): Promise<Auction[]>;
   getAuction(id: number): Promise<Auction | undefined>;
   createAuction(auction: InsertAuction): Promise<Auction>;
+  deleteAuction(id: number): Promise<boolean>;
   
   // Auction schedule management
   getAuctionSchedules(auctionId?: number): Promise<AuctionSchedule[]>;
@@ -359,6 +360,11 @@ export class DatabaseStorage implements IStorage {
   async createAuction(auction: InsertAuction): Promise<Auction> {
     const [createdAuction] = await db.insert(auctions).values(auction).returning();
     return createdAuction;
+  }
+
+  async deleteAuction(id: number): Promise<boolean> {
+    const result = await db.delete(auctions).where(eq(auctions.id, id));
+    return result.rowCount !== null && result.rowCount > 0;
   }
 
   // Auction schedule management
