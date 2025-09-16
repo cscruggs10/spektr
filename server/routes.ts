@@ -2047,7 +2047,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             auction_id,
             filename: "manual_entries",
             processed: true,
-            uploaded_by: 7 // Current user ID
+            uploaded_by: null // Manual entries don't have an uploader
           })
           .returning();
         
