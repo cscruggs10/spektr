@@ -893,13 +893,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create an auction
   app.post("/api/auctions", async (req, res) => {
     try {
+      console.log("=== AUCTION CREATION REQUEST ===");
+      console.log("Request body:", JSON.stringify(req.body, null, 2));
+      console.log("Headers:", JSON.stringify(req.headers, null, 2));
+      console.log("Environment:", {
+        NODE_ENV: process.env.NODE_ENV,
+        DATABASE_URL: process.env.DATABASE_URL ? "[SET]" : "[NOT SET]"
+      });
+      
       const validation = insertAuctionSchema.safeParse(req.body);
       
       if (!validation.success) {
+        console.error("Validation failed:", validation.error);
         return handleZodError(validation.error, res);
       }
       
+      console.log("Validation passed, creating auction with data:", validation.data);
+      
       const auction = await storage.createAuction(validation.data);
+      
+      console.log("Auction created successfully:", auction);
       
       // Log activity
       await logActivity(7, "Auction created", { 
@@ -907,9 +920,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         name: auction.name
       });
       
+      console.log("Activity logged successfully");
+      
       res.status(201).json(auction);
     } catch (error) {
-      console.error("Error creating auction:", error);
+      console.error("=== AUCTION CREATION ERROR ===");
+      console.error("Error type:", error.constructor.name);
+      console.error("Error message:", error.message);
+      console.error("Error stack:", error.stack);
+      console.error("Request body at time of error:", JSON.stringify(req.body, null, 2));
+      console.error("Database connection status:", typeof storage);
+      console.error("===============================");
       res.status(500).json({ error: "Failed to create auction" });
     }
   });
