@@ -113,7 +113,7 @@ export default function ManualInspectionModal({
         inspector_id: data.inspector_id && data.inspector_id !== "none" ? parseInt(data.inspector_id) : null,
         notes: data.notes || null,
         status: "pending",
-        scheduled_date: data.inspection_date, // Pass as scheduled_date to match schema
+        scheduled_date: data.inspection_date ? new Date(data.inspection_date).toISOString() : null, // Convert to ISO string
         // No template_id needed with our simplified approach
       };
 
