@@ -4,6 +4,17 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import path from "path";
 
+// Add startup logging immediately
+console.log(`=== SPEKTR SERVER STARTUP ===`);
+console.log(`Time: ${new Date().toISOString()}`);
+console.log(`Node version: ${process.version}`);
+console.log(`CWD: ${process.cwd()}`);
+console.log(`NODE_ENV: ${process.env.NODE_ENV}`);
+console.log(`PORT: ${process.env.PORT}`);
+console.log(`DATABASE_URL: ${process.env.DATABASE_URL ? '[SET]' : '[NOT SET]'}`);
+console.log(`SESSION_SECRET: ${process.env.SESSION_SECRET ? '[SET]' : '[NOT SET]'}`);
+console.log(`==============================`);
+
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -69,13 +80,31 @@ app.use((req, res, next) => {
     log(`Starting server on ${host}:${port}...`);
     log(`NODE_ENV: ${process.env.NODE_ENV}`);
     log(`PORT: ${process.env.PORT || 3000}`);
+    log(`Process version: ${process.version}`);
+    log(`Working directory: ${process.cwd()}`);
     
     server.listen(port, host, () => {
       log(`serving on http://${host}:${port}`);
       log("Server is ready to accept connections");
     });
 
-    // Handle process signals
+    server.on('error', (error) => {
+      log(`Server error: ${error.message}`, "error");
+      log(`Error stack: ${error.stack}`, "error");
+    });
+
+    // Handle process signals and errors
+    process.on('uncaughtException', (error) => {
+      log(`Uncaught Exception: ${error.message}`, "error");
+      log(`Stack: ${error.stack}`, "error");
+      process.exit(1);
+    });
+
+    process.on('unhandledRejection', (reason, promise) => {
+      log(`Unhandled Rejection at: ${promise}, reason: ${reason}`, "error");
+      process.exit(1);
+    });
+
     process.on('SIGTERM', () => {
       log('SIGTERM received, shutting down gracefully');
       server.close(() => {
