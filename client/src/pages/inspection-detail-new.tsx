@@ -1111,8 +1111,8 @@ export default function InspectionDetail() {
                           <div className="space-y-4">
                             <div>
                               <h3 className="text-lg font-medium">Run/VIN Label Photos</h3>
-                              <p className="text-sm text-gray-500 mb-4">
-                                Take clear photos of the vehicle's run label and VIN placard
+                              <p className="text-sm font-bold text-gray-800 mb-4 bg-blue-50 p-3 rounded-md border-l-4 border-blue-400">
+                                📋 <strong>REQUIRED:</strong> Take clear photos of the vehicle's run label and VIN placard
                               </p>
                               
                               {/* Mobile-friendly photo upload */}
@@ -1231,11 +1231,11 @@ export default function InspectionDetail() {
                           <div className="space-y-4">
                             <div>
                               <h3 className="text-lg font-medium">Vehicle Walkaround Video</h3>
-                              <p className="text-sm text-gray-500 mb-1">
-                                Record a 1:30-2:00 minute video walking around the exterior of the vehicle
+                              <p className="text-sm font-bold text-gray-800 mb-1 bg-orange-50 p-3 rounded-md border-l-4 border-orange-400">
+                                🎥 <strong>REQUIRED:</strong> Record a 1:30-2:00 minute video walking around the exterior of the vehicle
                               </p>
-                              <p className="text-xs text-orange-600 mb-4">
-                                Be sure to capture all body panels, wheels, and glass
+                              <p className="text-sm font-semibold text-orange-700 mb-4 pl-3">
+                                ⚠️ Be sure to capture all body panels, wheels, and glass
                               </p>
                               
                               {/* Mobile-friendly video upload */}
@@ -1355,11 +1355,11 @@ export default function InspectionDetail() {
                           <div className="space-y-4">
                             <div>
                               <h3 className="text-lg font-medium">Engine Running Video</h3>
-                              <p className="text-sm text-gray-500 mb-1">
-                                Record a video of the running engine and verify HVAC operation
+                              <p className="text-sm font-bold text-gray-800 mb-1 bg-green-50 p-3 rounded-md border-l-4 border-green-400">
+                                🔧 <strong>REQUIRED:</strong> Record a video of the running engine and verify HVAC operation
                               </p>
-                              <p className="text-xs text-orange-600 mb-4">
-                                Show that the A/C and heat are functioning
+                              <p className="text-sm font-semibold text-green-700 mb-4 pl-3">
+                                ❄️🔥 Show that the A/C and heat are functioning
                               </p>
                               
                               <FileUpload
@@ -1377,8 +1377,8 @@ export default function InspectionDetail() {
                           <div className="space-y-6">
                             <div>
                               <h3 className="text-lg font-medium">Cosmetic Condition Estimate</h3>
-                              <p className="text-sm text-gray-500 mb-4">
-                                Provide an estimate for any cosmetic repairs needed
+                              <p className="text-sm font-bold text-gray-800 mb-4 bg-purple-50 p-3 rounded-md border-l-4 border-purple-400">
+                                💰 <strong>REQUIRED:</strong> Provide an estimate for any cosmetic repairs needed
                               </p>
                               
                               <div className="grid gap-4">
@@ -1412,8 +1412,8 @@ export default function InspectionDetail() {
                           <div className="space-y-6">
                             <div>
                               <h3 className="text-lg font-medium">Mechanical Condition Estimate</h3>
-                              <p className="text-sm text-gray-500 mb-4">
-                                Provide an estimate for any mechanical repairs needed
+                              <p className="text-sm font-bold text-gray-800 mb-4 bg-red-50 p-3 rounded-md border-l-4 border-red-400">
+                                🔧 <strong>REQUIRED:</strong> Provide an estimate for any mechanical repairs needed
                               </p>
                               
                               <div className="grid gap-4">
@@ -1447,8 +1447,8 @@ export default function InspectionDetail() {
                           <div className="space-y-4">
                             <div>
                               <h3 className="text-lg font-medium">Voice Notes</h3>
-                              <p className="text-sm text-gray-500 mb-4">
-                                Record voice notes that will be automatically transcribed
+                              <p className="text-sm font-bold text-gray-800 mb-4 bg-teal-50 p-3 rounded-md border-l-4 border-teal-400">
+                                🎤 <strong>OPTIONAL:</strong> Record voice notes that will be automatically transcribed
                               </p>
                               
                               <div className="flex flex-col items-center justify-center border rounded-md p-6 bg-gray-50">
