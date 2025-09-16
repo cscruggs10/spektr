@@ -924,6 +924,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log("Transformed auction data for database:", auctionData);
       
+      // Database diagnostics
+      console.log("=== DATABASE DIAGNOSTICS ===");
+      console.log("Storage object type:", typeof storage);
+      console.log("Storage createAuction method:", typeof storage.createAuction);
+      
+      try {
+        console.log("Testing database connection...");
+        // Test basic database access first
+        const testQuery = await storage.db.select().from(storage.schema.auctions).limit(1);
+        console.log("Database connection successful, existing auctions count:", testQuery.length);
+        console.log("Database schema info:", Object.keys(storage.schema));
+      } catch (dbError) {
+        console.error("Database connection test failed:", dbError);
+        throw new Error(`Database connection failed: ${dbError.message}`);
+      }
+      
+      console.log("Attempting to create auction...");
       const auction = await storage.createAuction(auctionData);
       
       console.log("Auction created successfully:", auction);
