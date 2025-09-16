@@ -931,10 +931,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       try {
         console.log("Testing database connection...");
-        // Test basic database access first
-        const testQuery = await storage.db.select().from(storage.schema.auctions).limit(1);
-        console.log("Database connection successful, existing auctions count:", testQuery.length);
-        console.log("Database schema info:", Object.keys(storage.schema));
+        // Test basic database access through storage layer
+        const existingAuctions = await storage.getAuctions();
+        console.log("Database connection successful, existing auctions count:", existingAuctions.length);
+        console.log("Sample auction data:", existingAuctions.slice(0, 1));
       } catch (dbError) {
         console.error("Database connection test failed:", dbError);
         throw new Error(`Database connection failed: ${dbError.message}`);
