@@ -42,29 +42,49 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  const server = await registerRoutes(app);
+  try {
+    const server = await registerRoutes(app);
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+      const status = err.status || err.statusCode || 500;
+      const message = err.message || "Internal Server Error";
+      
+      log(`Error: ${message}`, "error");
+      res.status(status).json({ message });
+    });
 
-    res.status(status).json({ message });
-    throw err;
-  });
+    // importantly only setup vite in development and after
+    // setting up all the other routes so the catch-all route
+    // doesn't interfere with the other routes
+    if (app.get("env") === "development") {
+      await setupVite(app, server);
+    } else {
+      serveStatic(app);
+    }
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
+    // Use PORT from environment or default to 3000
+    const port = process.env.PORT ? parseInt(process.env.PORT) : 3000;
+    const host = process.env.NODE_ENV === "production" ? "0.0.0.0" : "localhost";
+    
+    log(`Starting server on ${host}:${port}...`);
+    log(`NODE_ENV: ${process.env.NODE_ENV}`);
+    log(`PORT: ${process.env.PORT || 3000}`);
+    
+    server.listen(port, host, () => {
+      log(`serving on http://${host}:${port}`);
+      log("Server is ready to accept connections");
+    });
+
+    // Handle process signals
+    process.on('SIGTERM', () => {
+      log('SIGTERM received, shutting down gracefully');
+      server.close(() => {
+        log('Process terminated');
+      });
+    });
+
+  } catch (error) {
+    log(`Failed to start server: ${error}`, "error");
+    process.exit(1);
   }
-
-  // Use PORT from environment or default to 3000
-  const port = process.env.PORT ? parseInt(process.env.PORT) : 3000;
-  const host = process.env.NODE_ENV === "production" ? "0.0.0.0" : "localhost";
-  server.listen(port, host, () => {
-    log(`serving on http://${host}:${port}`);
-  });
 })();
