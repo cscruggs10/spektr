@@ -910,14 +910,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log("Validation passed, creating auction with data:", validation.data);
       
-      // Transform data for Railway compatibility - if address field exists, ignore it
-      // Railway schema expects different fields than local schema
+      // Transform data for Railway compatibility - handle both local and Railway schemas
       const auctionData = {
         name: validation.data.name,
         description: validation.data.description,
         location: validation.data.location,
-        // Only include address if the database schema supports it
-        ...(validation.data.address && { address: validation.data.address })
+        // Include address for local schema compatibility
+        ...(validation.data.address && { address: validation.data.address }),
+        // Include Railway-specific fields with defaults
+        date: new Date(),
+        status: "active"
       };
       
       console.log("Transformed auction data for database:", auctionData);

@@ -139,7 +139,11 @@ export const insertAuctionSchema = createInsertSchema(auctions).pick({
   description: true,
   location: true,
   address: true,
-}).partial({ address: true });
+}).partial({ address: true }).extend({
+  // Add Railway-specific fields for compatibility
+  date: z.date().optional(),
+  status: z.string().optional(),
+});
 
 // Runlists
 export const runlists = pgTable("runlists", {
