@@ -318,12 +318,12 @@ export default function InspectionsBento() {
 
         {/* Modals */}
         <ManualInspectionModal 
-          open={isManualInspectionModalOpen} 
-          onOpenChange={setIsManualInspectionModalOpen} 
+          isOpen={isManualInspectionModalOpen} 
+          onClose={() => setIsManualInspectionModalOpen(false)} 
         />
         <ManualInspectionBatchUploadModal 
-          open={isBatchUploadModalOpen} 
-          onOpenChange={setIsBatchUploadModalOpen} 
+          isOpen={isBatchUploadModalOpen} 
+          onClose={() => setIsBatchUploadModalOpen(false)} 
         />
       </PageWrapper>
     </>
