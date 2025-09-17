@@ -278,63 +278,84 @@ export default function InspectorPortal() {
 
   const selectedInspector = inspectors.find(i => i.id === parseInt(inspectorId));
 
-  // Show inspector login screen if no inspector selected
+  // Show inspector login screen if no inspector selected - Simple design optimized for sunlight
   if (!inspectorId) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold text-gray-900">Inspector Portal</CardTitle>
-            <p className="text-gray-600 mt-2">Select your inspector profile to access your assigned inspections</p>
-            <div className="mt-4">
-              <a 
-                href="/inspector-training-guide.html" 
-                target="_blank"
-                className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 underline"
-              >
-                📚 View Training Guide
-              </a>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="inspector-select" className="text-sm font-medium">
-                Select Inspector
-              </Label>
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900/50 flex items-center justify-center p-4">
+        <div className="w-full max-w-lg text-center">
+          {/* Large Logo Section - 3/4 of screen on mobile */}
+          <div className="mb-8">
+            <img 
+              src="/spektr-logo.svg" 
+              alt="SPEKTR" 
+              className="w-full max-w-xs md:max-w-sm mx-auto mb-6 h-[50vh] md:h-[40vh] object-contain"
+            />
+            <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-2">
+              SPEKTR
+            </h1>
+            <p className="text-xl text-gray-300 font-semibold">INSPECTOR PORTAL</p>
+          </div>
+          
+          {/* Simple Card with Dropdown */}
+          <Card className="border-2 border-gray-600 bg-gray-800/90 backdrop-blur shadow-2xl">
+            <CardHeader>
+              <CardTitle className="text-2xl font-bold text-white">Welcome Inspector</CardTitle>
+              <p className="text-gray-300 mt-2">Select your name to access inspections</p>
+            </CardHeader>
+            <CardContent className="space-y-6">
               <Select onValueChange={setInspectorId} disabled={loadingInspectors}>
-                <SelectTrigger>
-                  <SelectValue placeholder={loadingInspectors ? "Loading..." : "Choose your name"} />
+                <SelectTrigger className="h-14 text-lg font-semibold bg-white/95 text-gray-900 border-2 border-gray-300 hover:bg-white">
+                  <SelectValue placeholder={loadingInspectors ? "Loading..." : "Choose Your Name"} />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-white">
                   {inspectors.map((inspector) => (
-                    <SelectItem key={inspector.id} value={inspector.id.toString()}>
+                    <SelectItem 
+                      key={inspector.id} 
+                      value={inspector.id.toString()}
+                      className="text-lg font-semibold py-3 hover:bg-blue-50"
+                    >
                       {inspector.user?.username || `Inspector ${inspector.id}`}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-            <p className="text-xs text-gray-500 text-center">
-              Contact support if you don't see your name in the list
-            </p>
-          </CardContent>
-        </Card>
+              
+              {/* Training Guide Link */}
+              <a 
+                href="/inspector-training-guide.html" 
+                target="_blank"
+                className="inline-flex items-center justify-center text-blue-400 hover:text-blue-300 font-semibold text-lg underline"
+              >
+                📚 View Training Guide
+              </a>
+              
+              <p className="text-sm text-gray-400">
+                Contact support if you don't see your name
+              </p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50/30">
+      {/* Header - Gradient style matching main app */}
+      <div className="bg-gradient-to-r from-gray-900 to-gray-800 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+          <div className="flex justify-between items-center h-20">
             <div className="flex items-center">
-              <h1 className="text-xl font-semibold text-gray-900">Inspector Portal</h1>
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                  <img src="/spektr-logo.svg" alt="Spektr" className="w-6 h-6 text-white" />
+                </div>
+                <h1 className="text-2xl font-bold text-white">Inspector Portal</h1>
+              </div>
             </div>
             <div className="flex items-center space-x-4">
-              <div className="flex items-center text-sm text-gray-600">
-                <User className="h-4 w-4 mr-2" />
+              <div className="flex items-center text-base font-semibold text-white">
+                <User className="h-5 w-5 mr-2" />
                 {inspectors.find(i => i.id === parseInt(inspectorId))?.user?.username || "Inspector"}
               </div>
               <Button
@@ -349,7 +370,7 @@ export default function InspectorPortal() {
                     console.error('Failed to save language preference:', error);
                   }
                 }}
-                className="mr-1"
+                className="mr-1 font-semibold"
               >
                 ES
               </Button>
@@ -365,13 +386,13 @@ export default function InspectorPortal() {
                     console.error('Failed to save language preference:', error);
                   }
                 }}
-                className="mr-3"
+                className="mr-3 font-semibold"
               >
                 EN
               </Button>
               <Button
-                variant="outline"
-                size="sm"
+                variant="destructive"
+                size="default"
                 onClick={() => {
                   setInspectorId("");
                   setActiveInspection(null);
@@ -388,9 +409,9 @@ export default function InspectorPortal() {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">My Assigned Inspections</h2>
-          <p className="text-gray-600 mt-1">View and manage your vehicle inspection assignments</p>
+        <div className="mb-8">
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">My Assigned Inspections</h2>
+          <p className="text-gray-600 mt-2 text-lg">View and manage your vehicle inspection assignments</p>
         </div>
 
         {/* Auction Filter */}
@@ -442,7 +463,7 @@ export default function InspectorPortal() {
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {inspections.map((inspection) => (
-              <Card key={inspection.id} className="hover:shadow-md transition-shadow">
+              <Card key={inspection.id} className="hover:shadow-xl transition-all transform hover:-translate-y-1 border-2 hover:border-blue-400">
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-lg">
@@ -478,7 +499,7 @@ export default function InspectorPortal() {
                       <Button
                         onClick={() => startInspectionMutation.mutate(inspection.id)}
                         disabled={startInspectionMutation.isPending}
-                        className="w-full bg-blue-600 hover:bg-blue-700"
+                        className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-lg font-semibold h-12 shadow-lg"
                       >
                         {startInspectionMutation.isPending ? (
                           <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -496,7 +517,7 @@ export default function InspectorPortal() {
                           setShowInspectionModal(true);
                           setSectionStatus({ photos: false, walkaroundVideo: false, engineVideo: false, cosmetics: false, mechanical: false, notes: false });
                         }}
-                        className="w-full bg-orange-600 hover:bg-orange-700"
+                        className="w-full bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 text-lg font-semibold h-12 shadow-lg"
                       >
                         <FileText className="h-4 w-4 mr-2" />
                         Continue Inspection
