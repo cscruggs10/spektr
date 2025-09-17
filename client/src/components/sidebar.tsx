@@ -29,8 +29,8 @@ export default function Sidebar() {
           transition={{ duration: 0.5 }}
           className="relative z-10 flex items-center space-x-3"
         >
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
-            <img src="/spektr-logo.svg" alt="Spektr" className="w-6 h-6 text-white" />
+          <div className="flex items-center justify-center">
+            <img src="/spektr-logo.svg" alt="Spektr" className="w-12 h-12 text-white" />
           </div>
           <h1 className="text-white font-bold text-xl tracking-tight">SPEKTR</h1>
         </motion.div>
