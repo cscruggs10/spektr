@@ -19,7 +19,7 @@ export default function CompletedInspections() {
   const [selectedAuctionId, setSelectedAuctionId] = useState<string>("all");
 
   const { data: allInspections, isLoading } = useQuery({
-    queryKey: ["/api/inspections", { status: "completed" }],
+    queryKey: ["/api/inspections?status=completed"],
   });
 
   const { data: results } = useQuery({
