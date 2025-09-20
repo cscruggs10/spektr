@@ -317,318 +317,220 @@ export default function CompletedInspections() {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">
-                {inspections.length} completed inspection{inspections.length !== 1 ? 's' : ''}
-              </p>
-            </div>
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-sm text-muted-foreground">
+                  {inspections.length} completed inspection{inspections.length !== 1 ? 's' : ''}
+                </p>
+              </div>
 
-            <div className="grid gap-4">
-              {inspections.map((inspection: any) => {
-                const result = getResultForInspection(inspection.id);
-                
-                return (
-                  <Card 
-                    key={inspection.id} 
-                    className={`hover:shadow-md transition-shadow ${
-                      inspection.is_recommended 
-                        ? 'animate-pulse-green border-2 border-green-500' 
-                        : ''
-                    }`}
-                  >
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <CardTitle className="flex items-center space-x-3">
-                            <Car className="h-5 w-5 text-blue-600" />
-                            <span>
-                              Inspection #{inspection.id} - {inspection.vehicle?.year || ''} {inspection.vehicle?.make || ''} {inspection.vehicle?.model || 'Vehicle'}
-                            </span>
-                            <Badge variant="default" className="bg-green-100 text-green-800">
-                              COMPLETED
-                            </Badge>
-                            {inspection.is_recommended && (
-                              <Badge variant="default" className="bg-gradient-to-r from-green-600 to-emerald-600 text-white flex items-center">
-                                <Star className="h-3 w-3 mr-1" />
-                                RECOMMENDED
-                              </Badge>
-                            )}
-                          </CardTitle>
-                          <CardDescription className="mt-1">
-                            VIN: {inspection.vehicle?.vin || 'Unknown'} | Lane: {inspection.vehicle?.lane_number || 'N/A'} | Run: {inspection.vehicle?.run_number || 'N/A'}
-                          </CardDescription>
-                        </div>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => setExpandedInspection(
-                            expandedInspection === inspection.id ? null : inspection.id
-                          )}
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[200px]">Auction</TableHead>
+                      <TableHead className="w-[100px]">Lane</TableHead>
+                      <TableHead className="w-[100px]">Run</TableHead>
+                      <TableHead className="w-[150px]">Date</TableHead>
+                      <TableHead className="w-[200px]">Vehicle</TableHead>
+                      <TableHead className="w-[150px]">Inspector</TableHead>
+                      <TableHead className="w-[120px]">Status</TableHead>
+                      <TableHead className="w-[100px]">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {inspections.map((inspection: any) => {
+                      const result = getResultForInspection(inspection.id);
+                      const auction = auctions?.find((a: any) => a.id === inspection.vehicle?.runlist?.auction_id);
+
+                      return (
+                        <TableRow
+                          key={inspection.id}
+                          className={`hover:bg-muted/50 ${
+                            inspection.is_recommended
+                              ? 'bg-green-50 border-l-4 border-green-500'
+                              : ''
+                          }`}
                         >
-                          <Eye className="h-4 w-4 mr-2" />
-                          {expandedInspection === inspection.id ? 'Hide Details' : 'View All Data'}
-                        </Button>
-                      </div>
-                    </CardHeader>
-                    
-                    <CardContent>
-                      {/* Basic Info */}
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                        <div className="space-y-1">
-                          <div className="flex items-center text-sm text-muted-foreground">
-                            <Calendar className="h-4 w-4 mr-1" />
-                            Completed
-                          </div>
-                          <p className="font-medium">
-                            {inspection.completion_date 
-                              ? format(new Date(inspection.completion_date), "MMM d, yyyy HH:mm")
+                          <TableCell className="font-medium">
+                            {auction?.name || 'Unknown Auction'}
+                          </TableCell>
+                          <TableCell>
+                            {inspection.vehicle?.lane_number || 'N/A'}
+                          </TableCell>
+                          <TableCell>
+                            {inspection.vehicle?.run_number || 'N/A'}
+                          </TableCell>
+                          <TableCell>
+                            {inspection.completion_date
+                              ? format(new Date(inspection.completion_date), "MMM d, yyyy")
                               : "Recently"}
-                          </p>
-                        </div>
-
-                        <div className="space-y-1">
-                          <div className="flex items-center text-sm text-muted-foreground">
-                            <User className="h-4 w-4 mr-1" />
-                            Inspector
-                          </div>
-                          <p className="font-medium">
+                          </TableCell>
+                          <TableCell>
+                            <div className="space-y-1">
+                              <div className="font-medium">
+                                {inspection.vehicle?.year || ''} {inspection.vehicle?.make || ''} {inspection.vehicle?.model || 'Vehicle'}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                VIN: {inspection.vehicle?.vin || 'Unknown'}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
                             {inspection.inspector?.user?.name || "Unknown"}
-                          </p>
-                        </div>
-
-                        <div className="space-y-1">
-                          <div className="flex items-center text-sm text-muted-foreground">
-                            <FileCheck className="h-4 w-4 mr-1" />
-                            Status
-                          </div>
-                          <p className="font-medium">
-                            {inspection.status || "Completed"}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Media Summary */}
-                      {result && (
-                        <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-                          <div className="flex items-center space-x-4 text-sm">
-                            {result.photos && result.photos.length > 0 && (
-                              <span className="flex items-center text-green-600">
-                                <span className="h-2 w-2 bg-green-600 rounded-full mr-1"></span>
-                                {result.photos.length} Photo{result.photos.length !== 1 ? 's' : ''}
-                              </span>
-                            )}
-                            {result.videos && result.videos.length > 0 && (
-                              <span className="flex items-center text-blue-600">
-                                <span className="h-2 w-2 bg-blue-600 rounded-full mr-1"></span>
-                                {result.videos.length} Video{result.videos.length !== 1 ? 's' : ''}
-                              </span>
-                            )}
-                            {result.data?.uploaded_files && result.data.uploaded_files.length > 0 && (
-                              <span className="flex items-center text-purple-600">
-                                <span className="h-2 w-2 bg-purple-600 rounded-full mr-1"></span>
-                                {result.data.uploaded_files.length} Additional File{result.data.uploaded_files.length !== 1 ? 's' : ''}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Notes */}
-                      {inspection.notes && (
-                        <div className="mb-4 p-3 bg-blue-50 rounded-lg">
-                          <h6 className="font-medium text-sm mb-1">Inspection Notes:</h6>
-                          {(() => {
-                            const notes = inspection.notes;
-                            const voiceNoteMatch = notes.match(/\[VOICE_NOTE\](.*?)\[\/VOICE_NOTE\]/);
-                            
-                            if (voiceNoteMatch) {
-                              const voiceUrl = voiceNoteMatch[1];
-                              const textNotes = notes.replace(/\[VOICE_NOTE\].*?\[\/VOICE_NOTE\]/g, '').trim();
-                              
-                              return (
-                                <div className="space-y-2">
-                                  {textNotes && (
-                                    <p className="text-sm text-gray-700">{textNotes}</p>
-                                  )}
-                                  <div className="bg-indigo-100 p-2 rounded">
-                                    <p className="text-xs text-indigo-700 mb-1">Voice Note:</p>
-                                    <audio controls className="w-full">
-                                      <source src={voiceUrl} type="audio/mp4" />
-                                      <source src={voiceUrl} type="audio/webm" />
-                                      Your browser does not support audio playback.
-                                    </audio>
-                                  </div>
-                                </div>
-                              );
-                            } else {
-                              return <p className="text-sm text-gray-700">{notes}</p>;
-                            }
-                          })()}
-                        </div>
-                      )}
-
-                      {/* EXPANDED DETAILS */}
-                      {expandedInspection === inspection.id && (
-                        <div className="mt-6 pt-6 border-t space-y-6">
-                          <h4 className="text-xl font-bold text-gray-900">Complete Inspection Data</h4>
-                          
-                          {/* Vehicle Details */}
-                          <div className="bg-gray-50 p-4 rounded-lg">
-                            <h5 className="font-bold mb-3 text-gray-800">Vehicle Information</h5>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                              <div><span className="font-medium">Year:</span> {inspection.vehicle?.year || "Unknown"}</div>
-                              <div><span className="font-medium">Make:</span> {inspection.vehicle?.make || "Unknown"}</div>
-                              <div><span className="font-medium">Model:</span> {inspection.vehicle?.model || "Unknown"}</div>
-                              <div><span className="font-medium">Color:</span> {inspection.vehicle?.color || "Unknown"}</div>
-                              <div><span className="font-medium">VIN:</span> {inspection.vehicle?.vin || "Unknown"}</div>
-                              <div><span className="font-medium">Lane:</span> {inspection.vehicle?.lane_number || "Unknown"}</div>
-                              <div><span className="font-medium">Run:</span> {inspection.vehicle?.run_number || "Unknown"}</div>
-                              <div><span className="font-medium">Stock #:</span> {inspection.vehicle?.stock_number || "Unknown"}</div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center space-x-2">
+                              <Badge variant="default" className="bg-green-100 text-green-800">
+                                COMPLETED
+                              </Badge>
+                              {inspection.is_recommended && (
+                                <Badge variant="default" className="bg-gradient-to-r from-green-600 to-emerald-600 text-white flex items-center">
+                                  <Star className="h-3 w-3 mr-1" />
+                                  REC
+                                </Badge>
+                              )}
                             </div>
-                          </div>
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setExpandedInspection(
+                                expandedInspection === inspection.id ? null : inspection.id
+                              )}
+                            >
+                              <Eye className="h-4 w-4 mr-1" />
+                              {expandedInspection === inspection.id ? 'Hide' : 'View'}
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
 
-                          {/* Inspection Timeline */}
+              {/* Expanded details section */}
+              {expandedInspection && inspections.find((i: any) => i.id === expandedInspection) && (
+                <div className="mt-6 pt-6 border-t space-y-6">
+                  {(() => {
+                    const inspection = inspections.find((i: any) => i.id === expandedInspection);
+                    const result = getResultForInspection(inspection.id);
+
+                    return (
+                      <>
+                        <h4 className="text-xl font-bold text-gray-900">Complete Inspection Data</h4>
+
+                        {/* Vehicle Details */}
+                        <div className="bg-gray-50 p-4 rounded-lg">
+                          <h5 className="font-bold mb-3 text-gray-800">Vehicle Information</h5>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                            <div><span className="font-medium">Year:</span> {inspection.vehicle?.year || "Unknown"}</div>
+                            <div><span className="font-medium">Make:</span> {inspection.vehicle?.make || "Unknown"}</div>
+                            <div><span className="font-medium">Model:</span> {inspection.vehicle?.model || "Unknown"}</div>
+                            <div><span className="font-medium">Color:</span> {inspection.vehicle?.color || "Unknown"}</div>
+                            <div><span className="font-medium">VIN:</span> {inspection.vehicle?.vin || "Unknown"}</div>
+                            <div><span className="font-medium">Lane:</span> {inspection.vehicle?.lane_number || "Unknown"}</div>
+                            <div><span className="font-medium">Run:</span> {inspection.vehicle?.run_number || "Unknown"}</div>
+                            <div><span className="font-medium">Stock #:</span> {inspection.vehicle?.stock_number || "Unknown"}</div>
+                          </div>
+                        </div>
+
+                        {/* Notes */}
+                        {inspection.notes && (
                           <div className="bg-blue-50 p-4 rounded-lg">
-                            <h5 className="font-bold mb-3 text-gray-800">Inspection Timeline</h5>
-                            <div className="space-y-2 text-sm">
-                              <div><span className="font-medium">Created:</span> {inspection.created_at ? format(new Date(inspection.created_at), "MMM d, yyyy HH:mm:ss") : "Unknown"}</div>
-                              <div><span className="font-medium">Scheduled:</span> {inspection.scheduled_date ? format(new Date(inspection.scheduled_date), "MMM d, yyyy HH:mm:ss") : "Not scheduled"}</div>
-                              <div><span className="font-medium">Started:</span> {inspection.start_date ? format(new Date(inspection.start_date), "MMM d, yyyy HH:mm:ss") : "Not recorded"}</div>
-                              <div><span className="font-medium">Completed:</span> {inspection.completion_date ? format(new Date(inspection.completion_date), "MMM d, yyyy HH:mm:ss") : "Not completed"}</div>
+                            <h6 className="font-medium text-sm mb-1">Inspection Notes:</h6>
+                            {(() => {
+                              const notes = inspection.notes;
+                              const voiceNoteMatch = notes.match(/\[VOICE_NOTE\](.*?)\[\/VOICE_NOTE\]/);
+
+                              if (voiceNoteMatch) {
+                                const voiceUrl = voiceNoteMatch[1];
+                                const textNotes = notes.replace(/\[VOICE_NOTE\].*?\[\/VOICE_NOTE\]/g, '').trim();
+
+                                return (
+                                  <div className="space-y-2">
+                                    {textNotes && (
+                                      <p className="text-sm text-gray-700">{textNotes}</p>
+                                    )}
+                                    <div className="bg-indigo-100 p-2 rounded">
+                                      <p className="text-xs text-indigo-700 mb-1">Voice Note:</p>
+                                      <audio controls className="w-full">
+                                        <source src={voiceUrl} type="audio/mp4" />
+                                        <source src={voiceUrl} type="audio/webm" />
+                                        Your browser does not support audio playback.
+                                      </audio>
+                                    </div>
+                                  </div>
+                                );
+                              } else {
+                                return <p className="text-sm text-gray-700">{notes}</p>;
+                              }
+                            })()}
+                          </div>
+                        )}
+
+                        {/* PHOTOS */}
+                        {result?.photos && result.photos.length > 0 && (
+                          <div className="bg-green-50 p-4 rounded-lg">
+                            <h5 className="font-bold mb-3 text-green-800">Photos ({result.photos.length})</h5>
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                              {result.photos.map((photo: string, index: number) => (
+                                <div key={index} className="bg-white p-2 rounded shadow">
+                                  <img
+                                    src={photo}
+                                    alt={`Photo ${index + 1}`}
+                                    className="w-full h-32 object-cover rounded cursor-pointer hover:opacity-80"
+                                    onClick={() => window.open(photo, '_blank')}
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = 'none';
+                                    }}
+                                  />
+                                  <p className="text-xs text-center mt-1 text-gray-600">Photo {index + 1}</p>
+                                </div>
+                              ))}
                             </div>
                           </div>
+                        )}
 
-                          {/* Estimates */}
-                          {(inspection.cosmetic_estimate || inspection.mechanical_estimate) && (
-                            <div className="bg-orange-50 p-4 rounded-lg">
-                              <h5 className="font-bold mb-3 text-orange-800 flex items-center">
-                                <DollarSign className="h-4 w-4 mr-1" />
-                                Repair Estimates
-                              </h5>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {inspection.cosmetic_estimate && (
-                                  <div className="bg-white p-3 rounded border">
-                                    <div className="font-medium text-sm text-gray-700">Cosmetic Repairs</div>
-                                    <div className="text-lg font-bold text-green-600">${inspection.cosmetic_estimate}</div>
-                                    {inspection.cosmetic_details && (
-                                      <div className="text-xs text-gray-600 mt-1">{inspection.cosmetic_details}</div>
-                                    )}
-                                  </div>
-                                )}
-                                {inspection.mechanical_estimate && (
-                                  <div className="bg-white p-3 rounded border">
-                                    <div className="font-medium text-sm text-gray-700">Mechanical Repairs</div>
-                                    <div className="text-lg font-bold text-red-600">${inspection.mechanical_estimate}</div>
-                                    {inspection.mechanical_details && (
-                                      <div className="text-xs text-gray-600 mt-1">{inspection.mechanical_details}</div>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
+                        {/* VIDEOS */}
+                        {result?.videos && result.videos.length > 0 && (
+                          <div className="bg-blue-50 p-4 rounded-lg">
+                            <h5 className="font-bold mb-3 text-blue-800">Videos ({result.videos.length})</h5>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {result.videos.map((video: string, index: number) => (
+                                <div key={index} className="bg-white p-2 rounded shadow">
+                                  <video
+                                    src={video}
+                                    controls
+                                    className="w-full h-48 rounded"
+                                    preload="metadata"
+                                  >
+                                    Your browser does not support video playback.
+                                  </video>
+                                  <p className="text-xs text-center mt-1 text-gray-600">Video {index + 1}</p>
+                                </div>
+                              ))}
                             </div>
-                          )}
+                          </div>
+                        )}
 
-
-
-                          {/* Raw Data */}
-                          {result?.data && (
-                            <div className="bg-yellow-50 p-4 rounded-lg">
-                              <h5 className="font-bold mb-3 text-gray-800">Raw Inspection Data</h5>
-                              <pre className="text-xs bg-white p-3 rounded border overflow-auto max-h-64 whitespace-pre-wrap">
-                                {JSON.stringify(result.data, null, 2)}
-                              </pre>
-                            </div>
-                          )}
-                          
-                          {/* PHOTOS */}
-                          {result?.photos && result.photos.length > 0 && (
-                            <div className="bg-green-50 p-4 rounded-lg">
-                              <h5 className="font-bold mb-3 text-green-800">Photos ({result.photos.length})</h5>
-                              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                {result.photos.map((photo: string, index: number) => (
-                                  <div key={index} className="bg-white p-2 rounded shadow">
-                                    <img
-                                      src={photo}
-                                      alt={`Photo ${index + 1}`}
-                                      className="w-full h-32 object-cover rounded cursor-pointer hover:opacity-80"
-                                      onClick={() => window.open(photo, '_blank')}
-                                      onError={(e) => {
-                                        e.currentTarget.style.display = 'none';
-                                      }}
-                                    />
-                                    <p className="text-xs text-center mt-1 text-gray-600">Photo {index + 1}</p>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* VIDEOS */}
-                          {result?.videos && result.videos.length > 0 && (
-                            <div className="bg-blue-50 p-4 rounded-lg">
-                              <h5 className="font-bold mb-3 text-blue-800">Videos ({result.videos.length})</h5>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {result.videos.map((video: string, index: number) => (
-                                  <div key={index} className="bg-white p-2 rounded shadow">
-                                    <video
-                                      src={video}
-                                      controls
-                                      className="w-full h-48 rounded"
-                                      preload="metadata"
-                                    >
-                                      Your browser does not support video playback.
-                                    </video>
-                                    <p className="text-xs text-center mt-1 text-gray-600">Video {index + 1}</p>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* ADDITIONAL FILES */}
-                          {result?.data?.uploaded_files && result.data.uploaded_files.length > 0 && (
-                            <div className="bg-purple-50 p-4 rounded-lg">
-                              <h5 className="font-bold mb-3 text-purple-800">Additional Files ({result.data.uploaded_files.length})</h5>
-                              <div className="space-y-2">
-                                {result.data.uploaded_files.map((file: any, index: number) => (
-                                  <div key={index} className="bg-white p-3 rounded border flex justify-between items-center">
-                                    <div>
-                                      <p className="font-medium text-sm">{file.filename}</p>
-                                      <p className="text-xs text-gray-500">
-                                        Type: {file.type} | Size: {(file.size / 1024).toFixed(1)} KB | 
-                                        Uploaded: {format(new Date(file.uploaded_at), "MMM d, HH:mm")}
-                                      </p>
-                                    </div>
-                                    <a 
-                                      href={file.url} 
-                                      target="_blank" 
-                                      rel="noopener noreferrer"
-                                      className="px-3 py-1 bg-purple-100 text-purple-700 rounded text-sm hover:bg-purple-200"
-                                    >
-                                      Open
-                                    </a>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* No data message */}
-                          {(!result || (!result.photos?.length && !result.videos?.length && !result.data?.uploaded_files?.length)) && (
-                            <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg">
-                              <FileCheck className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                              <p>No media files found for this inspection.</p>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          </div>
+                        {/* No data message */}
+                        {(!result || (!result.photos?.length && !result.videos?.length)) && (
+                          <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg">
+                            <FileCheck className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                            <p>No media files found for this inspection.</p>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         )}
       </div>
     </div>

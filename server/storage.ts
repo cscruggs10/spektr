@@ -580,7 +580,15 @@ export class DatabaseStorage implements IStorage {
   }): Promise<(Inspection & { vehicle: Vehicle, dealer?: Dealer, inspector?: Inspector })[]> {
     let query = db.query.inspections.findMany({
       with: {
-        vehicle: true,
+        vehicle: {
+          with: {
+            runlist: {
+              with: {
+                auction: true
+              }
+            }
+          }
+        },
         dealer: true,
         inspector: true
       },
@@ -657,7 +665,15 @@ export class DatabaseStorage implements IStorage {
       if (filters.vinLast6) {
         query = db.query.inspections.findMany({
           with: {
-            vehicle: true,
+            vehicle: {
+              with: {
+                runlist: {
+                  with: {
+                    auction: true
+                  }
+                }
+              }
+            },
             dealer: true,
             inspector: true
           },
@@ -673,7 +689,15 @@ export class DatabaseStorage implements IStorage {
       if (conditions.length > 0) {
         query = db.query.inspections.findMany({
           with: {
-            vehicle: true,
+            vehicle: {
+              with: {
+                runlist: {
+                  with: {
+                    auction: true
+                  }
+                }
+              }
+            },
             dealer: true,
             inspector: true
           },
