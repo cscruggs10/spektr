@@ -1,5 +1,5 @@
 import { db } from "../db";
-import { vehicleMakes, vehicleModels, insertVehicleMakeSchema, insertVehicleModelSchema } from "@shared/schema";
+import { vehicleMakes, vehicleModels, insertVehicleMakeSchema, insertVehicleModelSchema } from "../../shared/schema.js";
 import { eq, sql } from "drizzle-orm";
 
 interface NHTSAMakeResult {

@@ -109,6 +109,9 @@ export const auctions = pgTable("auctions", {
   description: text("description"),
   location: text("location").default("Unknown").notNull(),
   address: text("address").default("Unknown").notNull(),
+  auction_group: text("auction_group"), // e.g., "Auto Nation", "Regular", etc.
+  requires_vin: boolean("requires_vin").default(true), // false for Auto Nation
+  run_format: text("run_format").default("separate"), // "combined" for Auto Nation, "separate" for regular
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at"),
 });

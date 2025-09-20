@@ -32,13 +32,13 @@ import {
   insertActivityLogSchema, insertVehicleMakeAliasSchema, insertVehicleModelAliasSchema,
   insertVehicleMakeSchema, insertVehicleModelSchema,
   vehicles, runlists, users, inspectionResults, inspections, auctions
-} from "@shared/schema";
+} from "../shared/schema.js";
 import * as NHTSAService from "./services/nhtsa";
 import { ExcelService } from "./services/excel";
 import { ZodError } from "zod";
 import { parse } from "csv-parse";
 import ExcelJS from "exceljs";
-import { parseAutoNationRunNumber, isAutoNationAuction } from "@shared/utils/auction-formats";
+import { parseAutoNationRunNumber, isAutoNationAuction } from "../shared/utils/auction-formats.js";
 
 // Configure multer storage for file uploads
 const storage_config = multer.diskStorage({

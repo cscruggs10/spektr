@@ -1,6 +1,6 @@
 import ExcelJS from 'exceljs';
-import { BuyBoxItem } from '@shared/schema';
-import { Dealer } from '@shared/schema';
+import { BuyBoxItem } from '../../shared/schema.js';
+import { Dealer } from '../../shared/schema.js';
 
 export interface GroupedBuyBox {
   make: string;

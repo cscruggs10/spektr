@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { Upload, AlertCircle } from "lucide-react";
+import { Upload, AlertCircle, FileUp, Info } from "lucide-react";
 
 import {
   Dialog,
@@ -61,6 +61,7 @@ function BatchColumnMappingModal({
   onSuccess,
   onError,
   additionalData,
+  isAutoNation = false,
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -73,12 +74,16 @@ function BatchColumnMappingModal({
     scheduled_date: string;
     inspection_date: string;
   };
+  isAutoNation?: boolean;
 }) {
   const { toast } = useToast();
   const [vinColumn, setVinColumn] = useState<string>("none");
   const [laneColumn, setLaneColumn] = useState<string>("none");
   const [runColumn, setRunColumn] = useState<string>("none");
   const [notesColumn, setNotesColumn] = useState<string>("none");
+  const [stockColumn, setStockColumn] = useState<string>("none");
+  const [makeColumn, setMakeColumn] = useState<string>("none");
+  const [modelColumn, setModelColumn] = useState<string>("none");
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Get column headers from the first row
@@ -86,26 +91,55 @@ function BatchColumnMappingModal({
   
   // Process mapping and create inspections
   const handleSubmit = async () => {
-    if (vinColumn === "none") {
-      toast({
-        title: "Error",
-        description: "VIN column is required",
-        variant: "destructive",
-      });
-      return;
+    // For Auto Nation, run number is required instead of VIN
+    if (isAutoNation) {
+      if (runColumn === "none") {
+        toast({
+          title: "Error",
+          description: "Run # column is required for Auto Nation",
+          variant: "destructive",
+        });
+        return;
+      }
+    } else {
+      // Regular auctions require VIN
+      if (vinColumn === "none") {
+        toast({
+          title: "Error",
+          description: "VIN column is required",
+          variant: "destructive",
+        });
+        return;
+      }
     }
     
     setIsSubmitting(true);
     
     try {
       // Map the data
-      const mappedData = csvData.map(row => ({
-        vin: row[vinColumn],
-        lane_number: laneColumn !== "none" ? row[laneColumn] : null,
-        run_number: runColumn !== "none" ? row[runColumn] : null,
-        notes: notesColumn !== "none" ? row[notesColumn] : null,
-        ...additionalData
-      })).filter(item => item.vin); // Filter out rows with no VIN
+      const mappedData = csvData.map(row => {
+        if (isAutoNation) {
+          // For Auto Nation, use combined run format and optional fields
+          return {
+            vin: vinColumn !== "none" ? row[vinColumn] : null, // VIN is optional
+            run_number: runColumn !== "none" ? row[runColumn] : null, // This will be parsed on backend
+            stock_number: stockColumn !== "none" ? row[stockColumn] : null,
+            make: makeColumn !== "none" ? row[makeColumn] : null,
+            model: modelColumn !== "none" ? row[modelColumn] : null,
+            notes: notesColumn !== "none" ? row[notesColumn] : null,
+            ...additionalData
+          };
+        } else {
+          // Regular format
+          return {
+            vin: row[vinColumn],
+            lane_number: laneColumn !== "none" ? row[laneColumn] : null,
+            run_number: runColumn !== "none" ? row[runColumn] : null,
+            notes: notesColumn !== "none" ? row[notesColumn] : null,
+            ...additionalData
+          };
+        }
+      }).filter(item => isAutoNation ? item.run_number : item.vin); // Filter based on auction type
       
       // Send to backend
       const response = await apiRequest(
@@ -311,6 +345,7 @@ export default function ManualInspectionBatchUploadModal({
   const [showMappingModal, setShowMappingModal] = useState(false);
   const [formData, setFormData] = useState<ManualInspectionBatchFormData | null>(null);
   const [csvData, setCsvData] = useState<any[] | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   // Form setup
   const form = useForm<ManualInspectionBatchFormData>({
@@ -327,22 +362,69 @@ export default function ManualInspectionBatchUploadModal({
     queryKey: ["/api/auctions"],
   });
 
-
+  // Check if selected auction is Auto Nation
+  const selectedAuction = formData ? auctions?.find(a => a.id === parseInt(formData.auction_id)) : null;
+  const isAutoNation = selectedAuction ?
+    (selectedAuction.name.toLowerCase().includes('auto nation') ||
+     selectedAuction.name.toLowerCase().includes('autonation')) : false;
 
   // Query for inspectors
   const { data: inspectors } = useQuery<Inspector[]>({
     queryKey: ["/api/inspectors"],
   });
 
-  // Handle file upload
+  // Handle file selection
+  const handleFileSelection = useCallback((selectedFile: File) => {
+    // Validate file type
+    const validTypes = ['.csv', '.xlsx', '.xls'];
+    const fileExtension = selectedFile.name.toLowerCase().substr(selectedFile.name.lastIndexOf('.'));
+
+    if (!validTypes.includes(fileExtension)) {
+      setError('Please upload a CSV or Excel file');
+      return;
+    }
+
+    setFile(selectedFile);
+    setFileName(selectedFile.name);
+    setError(null);
+  }, []);
+
+  // Handle file upload from input
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
-      setFile(selectedFile);
-      setFileName(selectedFile.name);
-      setError(null);
+      handleFileSelection(selectedFile);
     }
   };
+
+  // Handle drag and drop
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const droppedFile = e.dataTransfer.files?.[0];
+    if (droppedFile) {
+      handleFileSelection(droppedFile);
+    }
+  }, [handleFileSelection]);
 
   // Mutation for parsing CSV file
   const parseCsvMutation = useMutation({
@@ -492,31 +574,70 @@ export default function ManualInspectionBatchUploadModal({
                 )}
               />
 
-              {/* File Upload */}
+              {/* File Upload with Drag and Drop */}
               <div className="space-y-2">
                 <FormLabel>Upload CSV File</FormLabel>
-                <div className="flex items-center gap-2">
+                <div
+                  className={`relative border-2 border-dashed rounded-lg transition-colors ${
+                    isDragging
+                      ? 'border-blue-500 bg-blue-50'
+                      : file
+                      ? 'border-green-500 bg-green-50'
+                      : 'border-gray-300 hover:border-gray-400'
+                  }`}
+                  onDragEnter={handleDragEnter}
+                  onDragLeave={handleDragLeave}
+                  onDragOver={handleDragOver}
+                  onDrop={handleDrop}
+                >
+                  <div className="p-6 text-center">
+                    {file ? (
+                      <div className="space-y-2">
+                        <FileUp className="mx-auto h-12 w-12 text-green-500" />
+                        <p className="text-sm font-medium text-gray-700">{fileName}</p>
+                        <p className="text-xs text-gray-500">File ready for upload</p>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setFile(null);
+                            setFileName('');
+                            setError(null);
+                          }}
+                        >
+                          Remove File
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <Upload className="mx-auto h-12 w-12 text-gray-400" />
+                        <div>
+                          <p className="text-sm font-medium text-gray-700">
+                            {isDragging ? 'Drop file here' : 'Drag and drop your file here'}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">or</p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => document.getElementById("file-upload")?.click()}
+                        >
+                          <Upload className="mr-2 h-4 w-4" />
+                          Browse Files
+                        </Button>
+                        <p className="text-xs text-gray-500">
+                          Supported formats: CSV, XLS, XLSX
+                        </p>
+                      </div>
+                    )}
+                  </div>
                   <Input
                     type="file"
                     accept=".csv,.xlsx,.xls"
                     onChange={handleFileChange}
                     className="hidden"
                     id="file-upload"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => document.getElementById("file-upload")?.click()}
-                    className="flex-1"
-                  >
-                    <Upload className="mr-2 h-4 w-4" />
-                    Select File
-                  </Button>
-                  <Input
-                    value={fileName}
-                    placeholder="No file selected"
-                    readOnly
-                    className="flex-1"
                   />
                 </div>
                 {error && (
@@ -553,6 +674,7 @@ export default function ManualInspectionBatchUploadModal({
           isOpen={showMappingModal}
           onClose={handleClose}
           csvData={csvData}
+          isAutoNation={isAutoNation}
           onSuccess={() => {
             toast({
               title: "Success",

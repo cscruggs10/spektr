@@ -14,7 +14,7 @@ import {
   type ActivityLog, type InsertActivityLog, type VehicleMakeAlias, type InsertVehicleMakeAlias,
   type VehicleModelAlias, type InsertVehicleModelAlias, type Notification, type InsertNotification,
   type SharedReport, type InsertSharedReport
-} from "@shared/schema";
+} from "../shared/schema.js";
 import { db } from "./db";
 import { eq, and, or, gte, lte, desc, sql, between, inArray } from "drizzle-orm";
 
