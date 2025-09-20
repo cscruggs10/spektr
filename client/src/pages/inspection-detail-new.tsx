@@ -133,6 +133,53 @@ const InspectionResultView = ({ inspectionResult }: { inspectionResult: any }) =
         )}
       </div>
 
+      {/* Module Scan Links Section */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-medium">Module Scan Links</h3>
+        {inspectionResult.links && inspectionResult.links.length > 0 ? (
+          <div className="space-y-3">
+            {inspectionResult.links.map((link: any, index: number) => (
+              <div key={index} className="border rounded-lg p-4 bg-purple-50">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-sm">{link.label || "Module Scan Report"}</p>
+                    <p className="text-xs text-gray-500">
+                      {link.created_at ? `Added: ${new Date(link.created_at).toLocaleDateString()}` : "Module scan diagnostic report"}
+                    </p>
+                  </div>
+                  <a
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 bg-purple-600 text-white rounded text-sm hover:bg-purple-700 flex items-center"
+                  >
+                    📊 View Report
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : inspectionResult.data?.module_scan_link ? (
+          <div className="border rounded-lg p-4 bg-purple-50">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-sm">Module Scan Report</p>
+                <p className="text-xs text-gray-500">Module scan diagnostic report</p>
+              </div>
+              <a
+                href={inspectionResult.data.module_scan_link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-2 bg-purple-600 text-white rounded text-sm hover:bg-purple-700 flex items-center"
+              >
+                📊 View Report
+              </a>
+            </div>
+          </div>
+        ) : (
+          <div className="text-sm text-gray-500">No module scan links available</div>
+        )}
+      </div>
 
       {/* Voice Notes Section */}
       <div className="space-y-4">
