@@ -17,6 +17,8 @@ export default function CompletedInspections() {
   const [selectedInspectorId, setSelectedInspectorId] = useState<string>("all");
   const [selectedDays, setSelectedDays] = useState<string>("all");
   const [selectedAuctionId, setSelectedAuctionId] = useState<string>("all");
+  const [laneSearch, setLaneSearch] = useState("");
+  const [runSearch, setRunSearch] = useState("");
 
   const { data: allInspections, isLoading } = useQuery({
     queryKey: ["/api/inspections?status=completed"],
@@ -65,6 +67,22 @@ export default function CompletedInspections() {
         return auctionId === parseInt(selectedAuctionId);
       });
     }
+
+    // Filter by lane number
+    if (laneSearch.trim()) {
+      filtered = filtered.filter((inspection: any) => {
+        const laneNumber = inspection.vehicle?.lane_number || "";
+        return laneNumber.toLowerCase().includes(laneSearch.trim().toLowerCase());
+      });
+    }
+
+    // Filter by run number
+    if (runSearch.trim()) {
+      filtered = filtered.filter((inspection: any) => {
+        const runNumber = inspection.vehicle?.run_number || "";
+        return runNumber.toLowerCase().includes(runSearch.trim().toLowerCase());
+      });
+    }
     
     // Filter by days
     if (selectedDays !== "all") {
@@ -87,7 +105,7 @@ export default function CompletedInspections() {
       const dateB = new Date(b.completion_date || 0);
       return dateB.getTime() - dateA.getTime();
     });
-  }, [allInspections, vinSearch, selectedInspectorId, selectedAuctionId, selectedDays]);
+  }, [allInspections, vinSearch, selectedInspectorId, selectedAuctionId, selectedDays, laneSearch, runSearch]);
 
   if (isLoading) {
     return (
@@ -124,7 +142,7 @@ export default function CompletedInspections() {
         {/* Filters Section */}
         <Card className="mb-6">
           <CardContent className="pt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4">
               {/* VIN Search */}
               <div className="lg:col-span-2">
                 <Label htmlFor="vin-search" className="text-sm font-medium">
@@ -201,10 +219,40 @@ export default function CompletedInspections() {
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Lane Number Filter */}
+              <div>
+                <Label htmlFor="lane-search" className="text-sm font-medium">
+                  Lane Number
+                </Label>
+                <Input
+                  id="lane-search"
+                  type="text"
+                  placeholder="Enter lane..."
+                  value={laneSearch}
+                  onChange={(e) => setLaneSearch(e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+
+              {/* Run Number Filter */}
+              <div>
+                <Label htmlFor="run-search" className="text-sm font-medium">
+                  Run Number
+                </Label>
+                <Input
+                  id="run-search"
+                  type="text"
+                  placeholder="Enter run..."
+                  value={runSearch}
+                  onChange={(e) => setRunSearch(e.target.value)}
+                  className="mt-1"
+                />
+              </div>
             </div>
 
             {/* Active Filters Summary */}
-            {(vinSearch || selectedInspectorId !== "all" || selectedAuctionId !== "all" || selectedDays !== "all") && (
+            {(vinSearch || selectedInspectorId !== "all" || selectedAuctionId !== "all" || selectedDays !== "all" || laneSearch || runSearch) && (
               <div className="mt-4 flex items-center gap-2 text-sm">
                 <Filter className="h-4 w-4 text-gray-500" />
                 <span className="text-gray-600">Active filters:</span>
@@ -228,6 +276,16 @@ export default function CompletedInspections() {
                     Last {selectedDays} days
                   </Badge>
                 )}
+                {laneSearch && (
+                  <Badge variant="secondary" className="text-xs">
+                    Lane: {laneSearch}
+                  </Badge>
+                )}
+                {runSearch && (
+                  <Badge variant="secondary" className="text-xs">
+                    Run: {runSearch}
+                  </Badge>
+                )}
                 <Button
                   variant="ghost"
                   size="sm"
@@ -236,6 +294,8 @@ export default function CompletedInspections() {
                     setSelectedInspectorId("all");
                     setSelectedAuctionId("all");
                     setSelectedDays("all");
+                    setLaneSearch("");
+                    setRunSearch("");
                   }}
                   className="ml-auto text-xs"
                 >

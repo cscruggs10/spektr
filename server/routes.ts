@@ -2128,6 +2128,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         startDate?: Date;
         endDate?: Date;
         vinLast6?: string;
+        laneNumber?: string;
+        runNumber?: string;
       } = {};
       
       // Parse numeric filters
@@ -2142,6 +2144,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // String filters
       if (req.query.status) filters.status = req.query.status as string;
       if (req.query.vinLast6) filters.vinLast6 = req.query.vinLast6 as string;
+      if (req.query.laneNumber) filters.laneNumber = req.query.laneNumber as string;
+      if (req.query.runNumber) filters.runNumber = req.query.runNumber as string;
       
       const inspections = await storage.getInspections(filters);
       res.json(inspections);

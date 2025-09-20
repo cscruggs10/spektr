@@ -102,6 +102,8 @@ export interface IStorage {
     startDate?: Date;
     endDate?: Date;
     vinLast6?: string;
+    laneNumber?: string;
+    runNumber?: string;
   }): Promise<(Inspection & { vehicle: Vehicle, dealer?: Dealer, inspector?: Inspector })[]>;
   getInspection(id: number): Promise<Inspection | undefined>;
   createInspection(inspection: InsertInspection): Promise<Inspection>;
@@ -573,6 +575,8 @@ export class DatabaseStorage implements IStorage {
     startDate?: Date;
     endDate?: Date;
     vinLast6?: string;
+    laneNumber?: string;
+    runNumber?: string;
   }): Promise<(Inspection & { vehicle: Vehicle, dealer?: Dealer, inspector?: Inspector })[]> {
     let query = db.query.inspections.findMany({
       with: {
@@ -601,26 +605,35 @@ export class DatabaseStorage implements IStorage {
         conditions.push(eq(inspections.status, filters.status));
       }
       
-      // Added auction filter - using a subquery to find inspectors assigned to this auction
+      // Filter by auction through vehicle's runlist
       if (filters.auctionId) {
-        // Find all inspectors assigned to this auction
-        const inspectorsAtAuction = await db.select({
-          inspectorId: inspectors.id
-        })
-        .from(inspectorAuctions)
-        .innerJoin(inspectors, eq(inspectorAuctions.inspector_id, inspectors.id))
-        .where(eq(inspectorAuctions.auction_id, filters.auctionId));
-        
-        // Get inspector IDs
-        const inspectorIds = inspectorsAtAuction.map(r => r.inspectorId);
-        
-        if (inspectorIds.length > 0) {
-          // Add condition to filter by these inspectors
-          conditions.push(inArray(inspections.inspector_id, inspectorIds));
-        } else {
-          // If no inspectors at this auction, return empty result
-          return [];
-        }
+        // We need to join with vehicles and runlists to filter by auction
+        // This will be handled by using a SQL subquery
+        conditions.push(
+          sql`${inspections.vehicle_id} IN (
+            SELECT v.id FROM ${vehicles} v
+            LEFT JOIN ${runlists} r ON v.runlist_id = r.id
+            WHERE r.auction_id = ${filters.auctionId}
+          )`
+        );
+      }
+
+      // Filter by lane number
+      if (filters.laneNumber) {
+        conditions.push(
+          sql`${inspections.vehicle_id} IN (
+            SELECT id FROM ${vehicles} WHERE lane_number = ${filters.laneNumber}
+          )`
+        );
+      }
+
+      // Filter by run number
+      if (filters.runNumber) {
+        conditions.push(
+          sql`${inspections.vehicle_id} IN (
+            SELECT id FROM ${vehicles} WHERE run_number = ${filters.runNumber}
+          )`
+        );
       }
       
       // Date range filters
