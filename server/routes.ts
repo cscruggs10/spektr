@@ -3669,14 +3669,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         mechanical_estimate: req.body.mechanical_estimate,
         mechanical_details: req.body.mechanical_details,
       };
-      
+
+      // Handle module scan link
+      const links = [];
+      if (req.body.module_scan_link && req.body.module_scan_link.trim()) {
+        links.push({
+          type: "module_scan",
+          url: req.body.module_scan_link.trim(),
+          label: "Full Module Scan Report",
+          created_at: new Date().toISOString()
+        });
+      }
+
       if (existingResult) {
         // Update existing result with completion data
         const existingData = existingResult.data || {};
+        const existingLinks = existingResult.links || [];
+
+        // Remove any existing module scan links and add the new one
+        const filteredLinks = existingLinks.filter(link => link.type !== "module_scan");
+        const updatedLinks = [...filteredLinks, ...links];
+
         await storage.updateInspectionResult(existingResult.id, {
           data: { ...existingData, ...resultData },
           photos: req.body.photos || existingResult.photos || [],
           videos: req.body.videos || existingResult.videos || [],
+          links: updatedLinks
         });
       } else {
         // Create new result
@@ -3685,7 +3703,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           data: resultData,
           photos: req.body.photos || [],
           videos: req.body.videos || [],
-          links: []
+          links: links
         });
       }
       

@@ -473,6 +473,31 @@ export default function CompletedInspections() {
                           </div>
                         )}
 
+                        {/* MODULE SCAN LINK */}
+                        {result?.links && result.links.filter(link => link.type === "module_scan").length > 0 && (
+                          <div className="bg-purple-50 p-4 rounded-lg">
+                            <h5 className="font-bold mb-3 text-purple-800">Full Module Scan Report</h5>
+                            {result.links.filter(link => link.type === "module_scan").map((link, index) => (
+                              <div key={index} className="bg-white p-3 rounded border flex items-center justify-between">
+                                <div>
+                                  <p className="font-medium text-sm">{link.label || "Module Scan Report"}</p>
+                                  <p className="text-xs text-gray-500">
+                                    Added: {link.created_at ? format(new Date(link.created_at), "MMM d, yyyy HH:mm") : "Unknown"}
+                                  </p>
+                                </div>
+                                <a
+                                  href={link.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="px-4 py-2 bg-purple-600 text-white rounded text-sm hover:bg-purple-700 flex items-center"
+                                >
+                                  📊 View Report
+                                </a>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
                         {/* PHOTOS */}
                         {result?.photos && result.photos.length > 0 && (
                           <div className="bg-green-50 p-4 rounded-lg">
