@@ -24,8 +24,9 @@ export default function Header() {
               <h1 className="text-white font-bold text-lg">AutoInspect Pro</h1>
             </div>
             <nav className="mt-5">
+              {/* Operations Section */}
               <div className="px-4 mb-3">
-                <p className="text-xs uppercase tracking-wider text-gray-400">Main</p>
+                <p className="text-xs uppercase tracking-wider text-gray-400">Operations</p>
               </div>
               <Link href="/" className={`flex items-center px-6 py-2.5 ${location === "/" ? "bg-primary text-white" : "text-gray-300 hover:bg-gray-700"}`}>
                 <i className="fas fa-tachometer-alt mr-3 text-sm"></i>
@@ -45,19 +46,20 @@ export default function Header() {
               </Link>
               <Link href="/inspection-results" className={`flex items-center px-6 py-2.5 ${location === "/inspection-results" ? "bg-primary text-white" : "text-gray-300 hover:bg-gray-700"}`}>
                 <i className="fas fa-search mr-3 text-sm"></i>
-                <span>Inspection Results</span>
+                <span>Completed Inspections</span>
               </Link>
               <Link href="/inspector" className={`flex items-center px-6 py-2.5 ${location === "/inspector" ? "bg-primary text-white" : "text-gray-300 hover:bg-gray-700"}`}>
                 <i className="fas fa-user-shield mr-3 text-sm"></i>
                 <span>Inspector Portal</span>
               </Link>
-              <Link href="/inspection-templates" className={`flex items-center px-6 py-2.5 ${location === "/inspection-templates" ? "bg-primary text-white" : "text-gray-300 hover:bg-gray-700"}`}>
-                <i className="fas fa-list-check mr-3 text-sm"></i>
-                <span>Templates</span>
-              </Link>
+
+              {/* Management Section */}
+              <div className="px-4 mt-6 mb-3">
+                <p className="text-xs uppercase tracking-wider text-gray-400">Management</p>
+              </div>
               <Link href="/dealers" className={`flex items-center px-6 py-2.5 ${location === "/dealers" ? "bg-primary text-white" : "text-gray-300 hover:bg-gray-700"}`}>
-                <i className="fas fa-user-tie mr-3 text-sm"></i>
-                <span>Dealers</span>
+                <i className="fas fa-handshake mr-3 text-sm"></i>
+                <span>Client Partners</span>
               </Link>
               <Link href="/inspectors" className={`flex items-center px-6 py-2.5 ${location === "/inspectors" ? "bg-primary text-white" : "text-gray-300 hover:bg-gray-700"}`}>
                 <i className="fas fa-users mr-3 text-sm"></i>
@@ -67,8 +69,14 @@ export default function Header() {
                 <i className="fas fa-gavel mr-3 text-sm"></i>
                 <span>Auctions</span>
               </Link>
+              <Link href="/inspection-templates" className={`flex items-center px-6 py-2.5 ${location === "/inspection-templates" ? "bg-primary text-white" : "text-gray-300 hover:bg-gray-700"}`}>
+                <i className="fas fa-list-check mr-3 text-sm"></i>
+                <span>Templates</span>
+              </Link>
+
+              {/* Tools & Settings */}
               <div className="px-4 mt-6 mb-3">
-                <p className="text-xs uppercase tracking-wider text-gray-400">Setup</p>
+                <p className="text-xs uppercase tracking-wider text-gray-400">Tools & Settings</p>
               </div>
               <Link href="/vehicle-tools" className={`flex items-center px-6 py-2.5 ${location === "/vehicle-tools" ? "bg-primary text-white" : "text-gray-300 hover:bg-gray-700"}`}>
                 <i className="fas fa-tools mr-3 text-sm"></i>
