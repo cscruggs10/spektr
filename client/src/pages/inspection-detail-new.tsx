@@ -319,10 +319,28 @@ export default function InspectionDetail() {
     enabled: inspection?.status === "completed",
     refetchInterval: false,
     refetchOnWindowFocus: false,
+    retry: false, // Don't retry on 404
     onSuccess: (data) => {
       console.log("Inspection Result Data:", data);
+    },
+    onError: (error) => {
+      console.log("No inspection result found, will use fallback");
     }
   });
+
+  // Fallback: fetch all inspection results and find by inspection_id
+  const { data: allResults } = useQuery({
+    queryKey: ["/api/inspection-results"],
+    enabled: inspection?.status === "completed" && !inspectionResult,
+    refetchInterval: false,
+    refetchOnWindowFocus: false,
+  });
+
+  // Find the result for this inspection from the all results
+  const fallbackResult = allResults?.find((result: any) => result.inspection_id === parseInt(id));
+
+  // Use the direct result if available, otherwise use fallback
+  const finalInspectionResult = inspectionResult || fallbackResult;
   
   // Mutation to decode VIN
   const decodeVinMutation = useMutation({
@@ -420,6 +438,7 @@ export default function InspectionDetail() {
       });
       // Refresh inspection result to show the new voice note
       queryClient.invalidateQueries([`/api/inspection-results/${id}`]);
+      queryClient.invalidateQueries(["/api/inspection-results"]);
     },
     onError: (error: Error) => {
       toast({
@@ -509,6 +528,7 @@ export default function InspectionDetail() {
     
     // Refresh inspection result to show in completed view
     queryClient.invalidateQueries({ queryKey: [`/api/inspection-results/${id}`] });
+    queryClient.invalidateQueries({ queryKey: ["/api/inspection-results"] });
   };
   
   // Handle video upload success
@@ -521,6 +541,7 @@ export default function InspectionDetail() {
     
     // Refresh inspection result to show in completed view
     queryClient.invalidateQueries({ queryKey: [`/api/inspection-results/${id}`] });
+    queryClient.invalidateQueries({ queryKey: ["/api/inspection-results"] });
   };
   
   // Remove photo
@@ -1001,7 +1022,7 @@ export default function InspectionDetail() {
             </CardHeader>
             <CardContent>
               {isCompletedInspection ? (
-                <InspectionResultView inspectionResult={inspectionResult} />
+                <InspectionResultView inspectionResult={finalInspectionResult} />
               ) : (
                 /* Inspection Form */
                 <ScrollArea className="h-[550px]">
