@@ -196,6 +196,7 @@ export default function InspectionDetail() {
   // State for inspection form
   const [photos, setPhotos] = useState<string[]>([]);
   const [videos, setVideos] = useState<string[]>([]);
+  const [moduleScanLink, setModuleScanLink] = useState<string>("");
   
   // State for voice recording
   const [isRecording, setIsRecording] = useState(false);
@@ -383,6 +384,7 @@ export default function InspectionDetail() {
       const inspectionData = {
         photos: photos,
         videos: videos,
+        module_scan_link: moduleScanLink,
       };
       
       const res = await apiRequest("POST", `/api/inspections/${id}/complete`, inspectionData);
@@ -1328,22 +1330,32 @@ export default function InspectionDetail() {
                               </p>
 
                               <div className="space-y-4">
-                                <div className="p-4 border rounded-lg bg-gray-50">
-                                  <div className="flex items-center justify-between">
-                                    <div>
-                                      <h4 className="font-medium">Module Scan Report</h4>
-                                      <p className="text-sm text-gray-600">Access detailed diagnostic scan results</p>
-                                    </div>
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      onClick={() => {
-                                        // TODO: Implement module scan report link functionality
-                                        window.open('#', '_blank');
-                                      }}
-                                    >
-                                      View Report
-                                    </Button>
+                                <div className="p-4 border rounded-lg bg-white">
+                                  <label className="block text-sm font-medium mb-2">Module Scan Report Link</label>
+                                  <div className="space-y-3">
+                                    <Input
+                                      type="url"
+                                      placeholder="https://example.com/module-scan-report"
+                                      value={moduleScanLink}
+                                      onChange={(e) => setModuleScanLink(e.target.value)}
+                                      className="w-full"
+                                    />
+                                    {moduleScanLink && (
+                                      <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-md">
+                                        <div>
+                                          <p className="text-sm font-medium text-green-800">Report Link Added</p>
+                                          <p className="text-xs text-green-600 truncate max-w-xs">{moduleScanLink}</p>
+                                        </div>
+                                        <Button
+                                          type="button"
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() => window.open(moduleScanLink, '_blank')}
+                                        >
+                                          View Report
+                                        </Button>
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
 
