@@ -213,6 +213,58 @@ export default function InspectionDetail() {
   
   // State for decoded VIN info
   const [decodedVehicleInfo, setDecodedVehicleInfo] = useState<any>(null);
+
+  // Tab state management for deep linking
+  const [activeTab, setActiveTab] = useState(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('tab') || 'photos';
+  });
+
+  // Auto-save key for localStorage
+  const autoSaveKey = `inspection_draft_${id}`;
+
+  // Load saved data on component mount
+  useEffect(() => {
+    const savedData = localStorage.getItem(autoSaveKey);
+    if (savedData) {
+      try {
+        const parsed = JSON.parse(savedData);
+        if (parsed.photos) setPhotos(parsed.photos);
+        if (parsed.videos) setVideos(parsed.videos);
+        if (parsed.moduleScanLink) setModuleScanLink(parsed.moduleScanLink);
+        if (parsed.transcribedText) setTranscribedText(parsed.transcribedText);
+        if (parsed.activeTab) setActiveTab(parsed.activeTab);
+      } catch (error) {
+        console.error('Failed to load saved inspection data:', error);
+      }
+    }
+  }, [id]);
+
+  // Auto-save to localStorage whenever data changes
+  useEffect(() => {
+    const dataToSave = {
+      photos,
+      videos,
+      moduleScanLink,
+      transcribedText,
+      activeTab,
+      lastSaved: new Date().toISOString()
+    };
+    localStorage.setItem(autoSaveKey, JSON.stringify(dataToSave));
+  }, [photos, videos, moduleScanLink, transcribedText, activeTab, autoSaveKey]);
+
+  // Update URL when tab changes for deep linking
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', value);
+    window.history.replaceState({}, '', url.toString());
+  };
+
+  // Clear saved data when inspection is completed
+  const clearSavedData = () => {
+    localStorage.removeItem(autoSaveKey);
+  };
   
   // Fetch inspection data
   const { data: inspection, isLoading } = useQuery({
@@ -391,6 +443,7 @@ export default function InspectionDetail() {
       return await res.json();
     },
     onSuccess: () => {
+      clearSavedData(); // Clear auto-saved data when inspection is completed
       toast({
         title: "Inspection Completed",
         description: "The inspection has been successfully completed",
@@ -676,6 +729,12 @@ export default function InspectionDetail() {
           <Badge className={`ml-3 ${isCompletedInspection ? "bg-green-100 text-green-800" : "bg-blue-100 text-blue-800"}`}>
             {isCompletedInspection ? "Completed" : "In Progress"}
           </Badge>
+          {!isCompletedInspection && (
+            <div className="ml-3 text-xs text-gray-500 bg-green-50 px-2 py-1 rounded flex items-center">
+              <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div>
+              Auto-saved
+            </div>
+          )}
         </div>
         {!isCompletedInspection && (
           <div className="flex items-center gap-2">
@@ -1045,7 +1104,7 @@ export default function InspectionDetail() {
                         </Button>
                       </div>
                     </div>
-                    <Tabs defaultValue="photos" className="w-full">
+                    <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
                       <TabsList className="grid w-full grid-cols-5">
                         <TabsTrigger value="photos" className="text-xs">1. Photos</TabsTrigger>
                         <TabsTrigger value="walkaround" className="text-xs">2. Walkaround</TabsTrigger>
