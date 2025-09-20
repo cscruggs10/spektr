@@ -18,7 +18,7 @@ import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { db } from "./db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -31,13 +31,14 @@ import {
   insertInspectionResultSchema, insertPurchaseSchema, insertColumnMappingSchema,
   insertActivityLogSchema, insertVehicleMakeAliasSchema, insertVehicleModelAliasSchema,
   insertVehicleMakeSchema, insertVehicleModelSchema,
-  vehicles, runlists, users, inspectionResults
+  vehicles, runlists, users, inspectionResults, inspections, auctions
 } from "@shared/schema";
 import * as NHTSAService from "./services/nhtsa";
 import { ExcelService } from "./services/excel";
 import { ZodError } from "zod";
 import { parse } from "csv-parse";
 import ExcelJS from "exceljs";
+import { parseAutoNationRunNumber, isAutoNationAuction } from "@shared/utils/auction-formats";
 
 // Configure multer storage for file uploads
 const storage_config = multer.diskStorage({
@@ -2065,7 +2066,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         mileage: mileage || null,
         color: color || null,
         stock_number: stock_number || null,
-        lane: lane_number || null, // Map lane_number to lane for database
+        lane_number: lane_number || null, // Fixed: use lane_number not lane
         run_number: run_number || null,
       };
       
@@ -2185,47 +2186,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/inspections/batch", async (req, res) => {
     try {
       const { data } = req.body;
-      
+
       if (!Array.isArray(data) || data.length === 0) {
         return res.status(400).json({ error: "Data array is required" });
       }
-      
+
       // Get the first item to determine auction_id
       const firstItem = data[0];
       if (!firstItem || !firstItem.auction_id) {
         return res.status(400).json({ error: "Auction ID is required" });
       }
-      
+
+      // Check if this is an Auto Nation auction
+      const auction = await db.select().from(auctions).where(eq(auctions.id, firstItem.auction_id)).limit(1);
+      const isAutoNation = auction.length > 0 &&
+        (auction[0].auction_group === 'Auto Nation' || isAutoNationAuction(auction[0].name));
+
       // Create a temporary runlist for these manually added vehicles (no user tracking needed)
       const runlist = await storage.createRunlist({
-        auction_id: firstItem.auction_id, 
+        auction_id: firstItem.auction_id,
         filename: `Manual Batch Upload ${new Date().toISOString()}`,
         processed: true,
         column_mapping: { manual: true },
         uploaded_by: null // No user tracking for batch uploads
       });
-      
+
       // Process each item in the batch
       const createdInspections = [];
       for (const item of data) {
-        const { vin, lane_number, run_number, auction_id, inspector_id, dealer_id, scheduled_date, notes } = item;
-        
-        if (!vin) {
-          console.warn("Skipping batch item - missing VIN");
-          continue;
+        let { vin, lane_number, run_number, auction_id, inspector_id, dealer_id, scheduled_date, notes, stock_number, make, model } = item;
+
+        // Handle Auto Nation format
+        if (isAutoNation) {
+          // Auto Nation uses combined run format and no VIN
+          if (item.run_number && !lane_number) {
+            // Parse the combined format like "BB-0123"
+            const parsed = parseAutoNationRunNumber(item.run_number);
+            lane_number = parsed.lane_number;
+            run_number = parsed.run_number;
+          }
+          // Auto Nation doesn't require VIN
+          vin = vin || null;
+        } else {
+          // Regular auctions require VIN
+          if (!vin) {
+            console.warn("Skipping batch item - missing VIN for non-Auto Nation auction");
+            continue;
+          }
         }
-        
+
         // 1. Create a temporary vehicle for the inspection
         const vehicleData = {
           runlist_id: runlist.id, // Use the newly created runlist
-          vin: vin,
-          make: "Unknown", // Will be updated from NHTSA data if available
-          model: "Unknown", // Will be updated from NHTSA data if available
+          vin: vin || null, // VIN can be null for Auto Nation
+          make: make || "Unknown", // Use provided make or default
+          model: model || "Unknown", // Use provided model or default
           year: null,
           trim: null,
           mileage: null,
           color: null,
-          stock_number: null,
+          stock_number: stock_number || null, // Include stock number if provided
           lane_number: lane_number || null,
           run_number: run_number || null,
         };
@@ -2795,6 +2815,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Delete an inspection
+  app.delete("/api/inspections/:id", async (req, res) => {
+    try {
+      const inspectionId = parseInt(req.params.id);
+
+      // First check if inspection exists
+      const inspection = await storage.getInspection(inspectionId);
+      if (!inspection) {
+        return res.status(404).json({ error: "Inspection not found" });
+      }
+
+      // Delete the inspection
+      await db.delete(inspections).where(eq(inspections.id, inspectionId));
+
+      // Also delete the associated vehicle if it was manually created
+      if (inspection.vehicle_id) {
+        const vehicle = await db
+          .select()
+          .from(vehicles)
+          .where(eq(vehicles.id, inspection.vehicle_id))
+          .limit(1);
+
+        if (vehicle.length > 0 && vehicle[0].runlist_id) {
+          // Check if this is from a manual_entries runlist
+          const runlist = await db
+            .select()
+            .from(runlists)
+            .where(eq(runlists.id, vehicle[0].runlist_id))
+            .limit(1);
+
+          if (runlist.length > 0 && runlist[0].filename === "manual_entries") {
+            // Delete the vehicle too since it was manually created
+            await db.delete(vehicles).where(eq(vehicles.id, inspection.vehicle_id));
+          }
+        }
+      }
+
+      res.json({ message: "Inspection deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting inspection:", error);
+      res.status(500).json({ error: "Failed to delete inspection" });
+    }
+  });
+
+  // Delete all inspections
+  app.delete("/api/inspections", async (req, res) => {
+    try {
+      console.log("=== STARTING MASSIVE DELETION ===");
+
+      // Count before deletion
+      const inspectionsCount = await db.select().from(inspections);
+      const vehiclesCount = await db.select().from(vehicles);
+      console.log(`Found ${inspectionsCount.length} inspections and ${vehiclesCount.length} vehicles before deletion`);
+
+      // Force delete all using drizzle ORM with specific conditions
+      const deletedInspections = await db.delete(inspections);
+      console.log("Deleted inspections:", deletedInspections);
+
+      const deletedVehicles = await db.delete(vehicles);
+      console.log("Deleted vehicles:", deletedVehicles);
+
+      // Count after deletion
+      const remainingInspections = await db.select().from(inspections);
+      const remainingVehicles = await db.select().from(vehicles);
+      console.log(`After deletion: ${remainingInspections.length} inspections and ${remainingVehicles.length} vehicles remain`);
+
+      console.log("=== DELETION COMPLETED ===");
+      res.json({
+        message: "All data deleted successfully",
+        before: { inspections: inspectionsCount.length, vehicles: vehiclesCount.length },
+        after: { inspections: remainingInspections.length, vehicles: remainingVehicles.length }
+      });
+    } catch (error) {
+      console.error("=== DELETION FAILED ===", error);
+      res.status(500).json({ error: "Failed to delete all data", details: error.message });
+    }
+  });
+
   // Cleanup expired inspections (inspections created but not performed by 11:59 PM)
   app.post("/api/inspections/cleanup-expired", async (req, res) => {
     try {
@@ -3194,6 +3292,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.file) {
         return res.status(400).json({ error: "No file uploaded" });
       }
+
+      console.log("File uploaded:", {
+        filename: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size
+      });
       
       const filePath = req.file.path;
       const fileExt = path.extname(req.file.originalname).toLowerCase();
@@ -3217,39 +3321,93 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         res.json({ data: records });
       } else if ([".xlsx", ".xls"].includes(fileExt)) {
-        // Process Excel file
+        // Process Excel file with proper value extraction
         const workbook = new ExcelJS.Workbook();
         await workbook.xlsx.readFile(filePath);
-        
-        const worksheet = workbook.getWorksheet(1); // Get first worksheet
-        
+
+        const worksheet = workbook.getWorksheet(1);
+
         if (!worksheet) {
           return res.status(400).json({ error: "Empty worksheet" });
         }
-        
+
         const records: Record<string, string>[] = [];
-        const headers: string[] = [];
-        
-        // Process headers
-        worksheet.getRow(1).eachCell((cell, colNumber) => {
-          headers[colNumber - 1] = cell.value?.toString() || `Column ${colNumber}`;
+        const validHeaders: Array<{ index: number; name: string }> = [];
+
+        // Get headers from first row and filter valid ones
+        const headerRow = worksheet.getRow(1);
+        headerRow.eachCell((cell, colNumber) => {
+          // Extract text value - use the most direct approach
+          let headerText = "";
+
+          // Try multiple ways to get the actual displayed text
+          if (cell.text) {
+            headerText = cell.text;
+          } else if (cell.value) {
+            if (typeof cell.value === 'string') {
+              headerText = cell.value;
+            } else if (typeof cell.value === 'number') {
+              headerText = cell.value.toString();
+            } else if (cell.value.richText) {
+              // Handle rich text
+              headerText = cell.value.richText.map((rt: any) => rt.text).join('');
+            } else if (cell.value.result) {
+              headerText = cell.value.result.toString();
+            } else {
+              headerText = String(cell.value);
+            }
+          }
+
+          headerText = String(headerText).trim();
+
+          console.log(`Column ${colNumber}: "${headerText}" (type: ${typeof cell.value}, raw: ${JSON.stringify(cell.value)})`);
+
+          // Only include meaningful headers
+          if (headerText &&
+              headerText.length > 0 &&
+              !headerText.includes('Unnamed') &&
+              !headerText.includes('[object') &&
+              headerText !== 'Column ' + colNumber) {
+            validHeaders.push({
+              index: colNumber,
+              name: headerText
+            });
+          }
         });
-        
-        // Process rows
+
+        console.log("Valid headers found:", validHeaders.map(h => h.name));
+
+        // Process data rows
         worksheet.eachRow((row, rowNumber) => {
           if (rowNumber === 1) return; // Skip header row
-          
+
           const record: Record<string, string> = {};
-          
-          row.eachCell((cell, colNumber) => {
-            const header = headers[colNumber - 1];
-            const value = cell.value?.toString() || "";
-            record[header] = value;
+
+          validHeaders.forEach(header => {
+            const cell = row.getCell(header.index);
+            let cellText = "";
+
+            if (cell.value !== null && cell.value !== undefined) {
+              if (typeof cell.value === 'string') {
+                cellText = cell.value;
+              } else if (typeof cell.value === 'number') {
+                cellText = cell.value.toString();
+              } else if (cell.value && typeof cell.value === 'object') {
+                cellText = cell.text || cell.result?.toString() || "";
+              } else {
+                cellText = String(cell.value);
+              }
+            }
+
+            record[header.name] = String(cellText).trim();
           });
-          
-          records.push(record);
+
+          // Only add records with data
+          if (Object.values(record).some(value => value.length > 0)) {
+            records.push(record);
+          }
         });
-        
+
         res.json({ data: records });
       } else {
         res.status(400).json({ error: "Unsupported file format. Please upload a CSV or Excel file." });

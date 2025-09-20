@@ -113,24 +113,17 @@ export default function InspectionTemplates() {
             ]
           },
           {
-            id: "estimates",
-            label: "Condition Estimates",
-            description: "Provide repair estimates for any issues found",
+            id: "module_scan",
+            label: "Full Module Scan",
+            description: "Complete diagnostic scan of all vehicle modules",
             type: "section",
             items: [
               {
-                id: "cosmetic_estimate",
-                label: "Cosmetic Repair Estimate",
-                description: "Estimate cost for required cosmetic repairs",
-                type: "currency",
-                required: true
-              },
-              {
-                id: "mechanical_estimate",
-                label: "Mechanical Repair Estimate",
-                description: "Estimate cost for required mechanical repairs",
-                type: "currency",
-                required: true
+                id: "module_scan_report",
+                label: "Module Scan Report",
+                description: "Link to the complete module scan report",
+                type: "link",
+                required: false
               }
             ]
           },

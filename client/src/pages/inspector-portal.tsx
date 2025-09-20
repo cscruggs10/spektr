@@ -45,24 +45,20 @@ export default function InspectorPortal() {
   const [skipPhoto, setSkipPhoto] = useState<File | null>(null);
   
   // Inspection form data
-  const [cosmeticEstimate, setCosmeticEstimate] = useState<string>("");
-  const [cosmeticDetails, setCosmeticDetails] = useState<string>("");
-  const [mechanicalEstimate, setMechanicalEstimate] = useState<string>("");
-  const [mechanicalDetails, setMechanicalDetails] = useState<string>("");
+  const [moduleScanLink, setModuleScanLink] = useState<string>("");
   const [isRecording, setIsRecording] = useState(false);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const [voiceNote, setVoiceNote] = useState<Blob | null>(null);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [isRecommended, setIsRecommended] = useState(false);
   const [language, setLanguage] = useState<'en' | 'es'>('en');
+  const [isDaylightMode, setIsDaylightMode] = useState(false);
   
   // Track completion status for each section
   const [sectionStatus, setSectionStatus] = useState({
     photos: false,
     walkaroundVideo: false,
     engineVideo: false,
-    cosmetics: false,
-    mechanical: false,
     notes: false
   });
   
@@ -87,13 +83,18 @@ export default function InspectorPortal() {
     queryKey: ["/api/auctions"],
   });
 
+  // Get runlists to map vehicles to auctions
+  const { data: runlists = [] } = useQuery({
+    queryKey: ["/api/runlists"],
+  });
+
   // Get inspections for selected inspector only - exclude completed ones
   const { data: inspections = [], isLoading: loadingInspections } = useQuery({
     queryKey: ["/api/inspections"],
     enabled: !!inspectorId,
     select: (data) => {
       // Filter to only show inspections assigned to this inspector AND exclude completed ones
-      let filtered = data.filter((inspection: any) => 
+      let filtered = data.filter((inspection: any) =>
         inspection.inspector_id === parseInt(inspectorId) &&
         inspection.status !== 'completed'
       );
@@ -101,23 +102,64 @@ export default function InspectorPortal() {
       // Apply auction filter if selected
       if (selectedAuctionId && selectedAuctionId !== "all") {
         filtered = filtered.filter((inspection: any) => {
-          const auctionId = inspection.vehicle?.runlist?.auction_id || inspection.auction_id;
-          return auctionId === parseInt(selectedAuctionId);
+          // Find the auction_id from the runlist
+          if (inspection.vehicle?.runlist_id) {
+            const runlist = runlists.find((r: any) => r.id === inspection.vehicle.runlist_id);
+            return runlist && runlist.auction_id === parseInt(selectedAuctionId);
+          }
+          return false;
         });
       }
       
       // Sort by lane number first, then by run number
       return filtered.sort((a: any, b: any) => {
-        const aLane = parseInt(a.vehicle?.lane_number || 0);
-        const bLane = parseInt(b.vehicle?.lane_number || 0);
-        const aRun = parseInt(a.vehicle?.run_number || 0);
-        const bRun = parseInt(b.vehicle?.run_number || 0);
-        
-        // First sort by lane number
-        if (aLane !== bLane) {
-          return aLane - bLane;
+        // Handle both regular format and Auto Nation combined format
+        let aLane: string | number, bLane: string | number;
+        let aRun: number, bRun: number;
+
+        if (a.vehicle?.lane_number && a.vehicle?.run_number) {
+          // Regular format: separate lane and run numbers
+          aLane = a.vehicle.lane_number;
+          aRun = parseInt(a.vehicle.run_number || 0);
+        } else {
+          // Auto Nation format: combined in run_number like "BB-0123"
+          const combined = a.vehicle?.run_number || "";
+          const match = combined.match(/^([A-Z]+)-(\d+)$/);
+          if (match) {
+            aLane = match[1]; // "BB"
+            aRun = parseInt(match[2]); // 123
+          } else {
+            aLane = "";
+            aRun = parseInt(combined) || 0;
+          }
         }
-        
+
+        if (b.vehicle?.lane_number && b.vehicle?.run_number) {
+          // Regular format: separate lane and run numbers
+          bLane = b.vehicle.lane_number;
+          bRun = parseInt(b.vehicle.run_number || 0);
+        } else {
+          // Auto Nation format: combined in run_number like "BB-0123"
+          const combined = b.vehicle?.run_number || "";
+          const match = combined.match(/^([A-Z]+)-(\d+)$/);
+          if (match) {
+            bLane = match[1]; // "BB"
+            bRun = parseInt(match[2]); // 123
+          } else {
+            bLane = "";
+            bRun = parseInt(combined) || 0;
+          }
+        }
+
+        // First sort by lane (alphabetically for letters, numerically for numbers)
+        if (aLane !== bLane) {
+          if (typeof aLane === 'string' && typeof bLane === 'string') {
+            return aLane.localeCompare(bLane);
+          } else {
+            return (parseInt(String(aLane)) || 0) - (parseInt(String(bLane)) || 0);
+          }
+        }
+
         // Then sort by run number within same lane
         return aRun - bRun;
       });
@@ -140,7 +182,7 @@ export default function InspectorPortal() {
         setActiveInspection(inspection);
         setShowInspectionModal(true);
         // Reset section status for new inspection
-        setSectionStatus({ photos: false, walkaroundVideo: false, engineVideo: false, cosmetics: false, mechanical: false, notes: false });
+        setSectionStatus({ photos: false, walkaroundVideo: false, engineVideo: false, notes: false });
       }
       toast({
         title: "Inspection started",
@@ -198,10 +240,7 @@ export default function InspectorPortal() {
       formData.append("status", "completed");
       formData.append("end_date", new Date().toISOString());
       formData.append("notes", inspectionNotes);
-      formData.append("cosmetic_estimate", cosmeticEstimate || "0");
-      formData.append("cosmetic_details", cosmeticDetails);
-      formData.append("mechanical_estimate", mechanicalEstimate || "0");
-      formData.append("mechanical_details", mechanicalDetails);
+      formData.append("module_scan_link", moduleScanLink);
       formData.append("is_recommended", isRecommended.toString());
       
       if (voiceNote) {
@@ -222,14 +261,11 @@ export default function InspectorPortal() {
       setShowInspectionModal(false);
       setActiveInspection(null);
       setInspectionNotes("");
-      setCosmeticEstimate("");
-      setCosmeticDetails("");
-      setMechanicalEstimate("");
-      setMechanicalDetails("");
+      setModuleScanLink("");
       setVoiceNote(null);
       setUploadedFiles([]);
       setIsRecommended(false);
-      setSectionStatus({ photos: false, walkaroundVideo: false, engineVideo: false, cosmetics: false, mechanical: false, notes: false });
+      setSectionStatus({ photos: false, walkaroundVideo: false, engineVideo: false, notes: false });
     },
     onError: (error: Error) => {
       toast({
@@ -465,27 +501,27 @@ export default function InspectorPortal() {
             {inspections.map((inspection) => (
               <Card key={inspection.id} className="hover:shadow-xl transition-all transform hover:-translate-y-1 border-2 hover:border-blue-400">
                 <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">
-                      {inspection.vehicle?.year} {inspection.vehicle?.make} {inspection.vehicle?.model}
-                    </CardTitle>
+                  <div className="flex items-center justify-between mb-2">
                     <Badge className={`text-white ${getStatusColor(inspection.status)}`}>
                       {inspection.status.replace("_", " ")}
                     </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300 font-bold">
+                        Lane {inspection.vehicle?.lane_number || "N/A"}
+                      </Badge>
+                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300 font-bold">
+                        Run {inspection.vehicle?.run_number || "N/A"}
+                      </Badge>
+                    </div>
                   </div>
+                  <CardTitle className="text-lg">
+                    {inspection.vehicle?.year} {inspection.vehicle?.make} {inspection.vehicle?.model}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {inspection.vehicle?.vin && (
                     <div className="text-sm">
                       <span className="font-medium">VIN:</span> {inspection.vehicle.vin}
-                    </div>
-                  )}
-                  
-                  {inspection.vehicle?.lane_number && (
-                    <div className="flex items-center text-sm text-gray-600">
-                      <MapPin className="h-4 w-4 mr-1" />
-                      Lane {inspection.vehicle.lane_number}
-                      {inspection.vehicle.run_number && ` / Run ${inspection.vehicle.run_number}`}
                     </div>
                   )}
                   
@@ -515,7 +551,7 @@ export default function InspectorPortal() {
                         onClick={() => {
                           setActiveInspection(inspection);
                           setShowInspectionModal(true);
-                          setSectionStatus({ photos: false, walkaroundVideo: false, engineVideo: false, cosmetics: false, mechanical: false, notes: false });
+                          setSectionStatus({ photos: false, walkaroundVideo: false, engineVideo: false, notes: false });
                         }}
                         className="w-full bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 text-lg font-semibold h-12 shadow-lg"
                       >
@@ -546,12 +582,33 @@ export default function InspectorPortal() {
 
       {/* Inspection Modal */}
       <Dialog open={showInspectionModal} onOpenChange={setShowInspectionModal}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold">Vehicle Inspection</DialogTitle>
-            <DialogDescription>
-              Conducting inspection for {activeInspection?.vehicle?.year} {activeInspection?.vehicle?.make} {activeInspection?.vehicle?.model}
-            </DialogDescription>
+        <DialogContent className={`max-w-2xl max-h-[90vh] overflow-y-auto ${
+          isDaylightMode
+            ? 'bg-yellow-50 border-4 border-black text-black'
+            : ''
+        }`}>
+          <DialogHeader className={isDaylightMode ? 'border-b-4 border-black pb-4' : ''}>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex-1">
+                <DialogTitle className={`text-xl font-bold ${isDaylightMode ? 'text-2xl font-black text-black' : ''}`}>
+                  Vehicle Inspection
+                </DialogTitle>
+                <DialogDescription className={isDaylightMode ? 'text-lg font-bold text-gray-900' : ''}>
+                  Conducting inspection for {activeInspection?.vehicle?.year} {activeInspection?.vehicle?.make} {activeInspection?.vehicle?.model}
+                </DialogDescription>
+              </div>
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={() => setIsDaylightMode(!isDaylightMode)}
+                className={`min-w-[120px] ${isDaylightMode
+                  ? 'bg-black text-yellow-50 border-4 border-black hover:bg-gray-800 font-bold text-lg px-6 py-3'
+                  : 'border-2 border-yellow-500 text-yellow-600 hover:bg-yellow-50 font-semibold text-lg px-6 py-3'
+                }`}
+              >
+                {isDaylightMode ? '🌙 Normal' : '☀️ Daylight'}
+              </Button>
+            </div>
           </DialogHeader>
           
           <div className="space-y-6">
@@ -593,56 +650,102 @@ export default function InspectorPortal() {
             </Card>
 
             {/* Inspection Workflow Tabs - Responsive Layout */}
-            <div className="border rounded-lg">
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 text-sm md:text-xs">
-                <div className={`p-3 md:p-2 border-r border-b text-center relative ${sectionStatus.photos ? 'bg-green-100' : 'bg-blue-50'}`}>
-                  <div className="font-medium">1. Photos</div>
-                  <div className="text-gray-500 text-xs">Run/VIN Labels</div>
+            <div className={`border rounded-lg ${
+              isDaylightMode
+                ? 'border-4 border-black bg-yellow-50'
+                : ''
+            }`}>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 text-sm md:text-xs">
+                <div className={`p-3 md:p-2 border-r border-b text-center relative ${
+                  isDaylightMode
+                    ? sectionStatus.photos
+                      ? 'bg-green-300 border-2 border-black'
+                      : 'bg-yellow-100 border-2 border-black'
+                    : sectionStatus.photos
+                    ? 'bg-green-100'
+                    : 'bg-blue-50'
+                }`}>
+                  <div className={`font-medium ${
+                    isDaylightMode ? 'text-black font-black text-base' : ''
+                  }`}>1. Photos</div>
+                  <div className={`text-xs ${
+                    isDaylightMode ? 'text-black font-bold' : 'text-gray-500'
+                  }`}>Run/VIN Labels</div>
                   {sectionStatus.photos && (
                     <div className="absolute inset-0 flex items-center justify-center">
                       <span className="text-3xl text-green-600 font-bold">✓</span>
                     </div>
                   )}
                 </div>
-                <div className={`p-3 md:p-2 border-b lg:border-r text-center relative ${sectionStatus.walkaroundVideo ? 'bg-green-100' : ''}`}>
-                  <div className="font-medium">2. Walkaround</div>
-                  <div className="text-gray-500 text-xs">1:30-2:00 min</div>
+                <div className={`p-3 md:p-2 border-b lg:border-r text-center relative ${
+                  isDaylightMode
+                    ? sectionStatus.walkaroundVideo
+                      ? 'bg-green-300 border-2 border-black'
+                      : 'bg-yellow-100 border-2 border-black'
+                    : sectionStatus.walkaroundVideo
+                    ? 'bg-green-100'
+                    : ''
+                }`}>
+                  <div className={`font-medium ${
+                    isDaylightMode ? 'text-black font-black text-base' : ''
+                  }`}>2. Walkaround</div>
+                  <div className={`text-xs ${
+                    isDaylightMode ? 'text-black font-bold' : 'text-gray-500'
+                  }`}>1:30-2:00 min</div>
                   {sectionStatus.walkaroundVideo && (
                     <div className="absolute inset-0 flex items-center justify-center">
                       <span className="text-3xl text-green-600 font-bold">✓</span>
                     </div>
                   )}
                 </div>
-                <div className={`p-3 md:p-2 border-r border-b lg:border-r text-center relative ${sectionStatus.engineVideo ? 'bg-green-100' : ''}`}>
-                  <div className="font-medium">3. Engine</div>
-                  <div className="text-gray-500 text-xs">Running + HVAC</div>
+                <div className={`p-3 md:p-2 border-r border-b lg:border-r text-center relative ${
+                  isDaylightMode
+                    ? sectionStatus.engineVideo
+                      ? 'bg-green-300 border-2 border-black'
+                      : 'bg-yellow-100 border-2 border-black'
+                    : sectionStatus.engineVideo
+                    ? 'bg-green-100'
+                    : ''
+                }`}>
+                  <div className={`font-medium ${
+                    isDaylightMode ? 'text-black font-black text-base' : ''
+                  }`}>3. Engine</div>
+                  <div className={`text-xs ${
+                    isDaylightMode ? 'text-black font-bold' : 'text-gray-500'
+                  }`}>Running + HVAC</div>
                   {sectionStatus.engineVideo && (
                     <div className="absolute inset-0 flex items-center justify-center">
                       <span className="text-3xl text-green-600 font-bold">✓</span>
                     </div>
                   )}
                 </div>
-                <div className={`p-3 md:p-2 border-b lg:border-r text-center relative ${sectionStatus.cosmetics ? 'bg-green-100' : ''}`}>
-                  <div className="font-medium">4. Cosmetics</div>
-                  <div className="text-gray-500 text-xs">Estimate + Details</div>
-                  {sectionStatus.cosmetics && (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-3xl text-green-600 font-bold">✓</span>
-                    </div>
-                  )}
+                <div className={`p-3 md:p-2 border-b lg:border-r text-center relative ${
+                  isDaylightMode
+                    ? 'bg-yellow-100 border-2 border-black'
+                    : ''
+                }`}>
+                  <div className={`font-medium ${
+                    isDaylightMode ? 'text-black font-black text-base' : ''
+                  }`}>4. Module Scan</div>
+                  <div className={`text-xs ${
+                    isDaylightMode ? 'text-black font-bold' : 'text-gray-500'
+                  }`}>Report Link</div>
                 </div>
-                <div className={`p-3 md:p-2 border-r border-b lg:border-b lg:border-r text-center relative ${sectionStatus.mechanical ? 'bg-green-100' : ''}`}>
-                  <div className="font-medium">5. Mechanical</div>
-                  <div className="text-gray-500 text-xs">Estimate + Details</div>
-                  {sectionStatus.mechanical && (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-3xl text-green-600 font-bold">✓</span>
-                    </div>
-                  )}
-                </div>
-                <div className={`p-3 md:p-2 border-b lg:border-b text-center relative ${sectionStatus.notes ? 'bg-green-100' : ''}`}>
-                  <div className="font-medium">6. Notes</div>
-                  <div className="text-gray-500 text-xs">Voice + Text</div>
+                <div className={`p-3 md:p-2 border-b lg:border-b text-center relative ${
+                  isDaylightMode
+                    ? sectionStatus.notes
+                      ? 'bg-green-300 border-2 border-black'
+                      : 'bg-yellow-100 border-2 border-black'
+                    : sectionStatus.notes
+                    ? 'bg-green-100'
+                    : ''
+                }`}>
+                  <div className={`font-medium ${
+                    isDaylightMode ? 'text-black font-black text-base' : ''
+                  }`}>5. Notes</div>
+                  <div className={`text-xs ${
+                    isDaylightMode ? 'text-black font-bold' : 'text-gray-500'
+                  }`}>Voice + Text</div>
                   {sectionStatus.notes && (
                     <div className="absolute inset-0 flex items-center justify-center">
                       <span className="text-3xl text-green-600 font-bold">✓</span>
@@ -651,7 +754,11 @@ export default function InspectorPortal() {
                 </div>
               </div>
               
-              <div className="p-4 space-y-6">
+              <div className={`p-4 space-y-6 ${
+                isDaylightMode
+                  ? 'bg-yellow-50'
+                  : ''
+              }`}>
                 {/* Photos Section */}
                 <div className="space-y-3">
                   <h4 className="font-medium flex items-center">
@@ -893,95 +1000,31 @@ export default function InspectorPortal() {
                   </div>
                 </div>
 
-                {/* Cosmetic Estimate */}
+                {/* Full Module Scan */}
                 <div className="space-y-3">
-                  <h4 className="font-medium">Cosmetic Condition Estimate</h4>
-                  <div className="grid gap-3">
-                    <div className="space-y-2">
-                      <Label htmlFor="cosmetic-estimate">Cosmetic Repair Estimate ($)</Label>
-                      <input
-                        id="cosmetic-estimate"
-                        type="number"
-                        placeholder="Enter estimate amount"
-                        value={cosmeticEstimate}
-                        onChange={(e) => {
-                          setCosmeticEstimate(e.target.value);
-                          // Mark cosmetics section complete if both estimate and details are filled
-                          if (e.target.value && cosmeticDetails) {
-                            setSectionStatus(prev => ({ ...prev, cosmetics: true }));
-                          }
-                        }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="cosmetic-details">Details</Label>
-                      <Textarea
-                        id="cosmetic-details"
-                        placeholder="Enter details about cosmetic issues..."
-                        value={cosmeticDetails}
-                        onChange={(e) => {
-                          setCosmeticDetails(e.target.value);
-                          // Mark cosmetics section complete if both estimate and details are filled
-                          if (cosmeticEstimate && e.target.value) {
-                            setSectionStatus(prev => ({ ...prev, cosmetics: true }));
-                          }
-                        }}
-                        className="min-h-[80px]"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Mechanical Estimate */}
-                <div className="space-y-3">
-                  <h4 className="font-medium">Mechanical Condition Estimate</h4>
-                  <div className="grid gap-3">
-                    <div className="space-y-2">
-                      <Label htmlFor="mechanical-estimate">Mechanical Repair Estimate ($)</Label>
-                      <input
-                        id="mechanical-estimate"
-                        type="number"
-                        placeholder="Enter estimate amount"
-                        value={mechanicalEstimate}
-                        onChange={(e) => {
-                          setMechanicalEstimate(e.target.value);
-                          // Mark mechanical section complete if both estimate and details are filled
-                          if (e.target.value && mechanicalDetails) {
-                            setSectionStatus(prev => ({ ...prev, mechanical: true }));
-                          }
-                        }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="mechanical-details">Details</Label>
-                      <Textarea
-                        id="mechanical-details"
-                        placeholder="Enter details about mechanical issues..."
-                        value={mechanicalDetails}
-                        onChange={(e) => {
-                          setMechanicalDetails(e.target.value);
-                          // Mark mechanical section complete if both estimate and details are filled
-                          if (mechanicalEstimate && e.target.value) {
-                            setSectionStatus(prev => ({ ...prev, mechanical: true }));
-                          }
-                        }}
-                        className="min-h-[80px]"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Total Repair Estimate */}
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <h4 className="font-medium text-blue-800 mb-2">Total Repair Estimate</h4>
-                  <div className="text-2xl font-bold text-blue-900">
-                    ${((parseFloat(cosmeticEstimate) || 0) + (parseFloat(mechanicalEstimate) || 0)).toLocaleString()}
-                  </div>
-                  <div className="text-sm text-blue-600 mt-1">
-                    Cosmetic: ${(parseFloat(cosmeticEstimate) || 0).toLocaleString()} + 
-                    Mechanical: ${(parseFloat(mechanicalEstimate) || 0).toLocaleString()}
+                  <h4 className="font-medium">Full Module Scan</h4>
+                  <div className="space-y-2">
+                    <Label htmlFor="module-scan-link">Module Scan Report Link</Label>
+                    <input
+                      id="module-scan-link"
+                      type="url"
+                      placeholder="Paste link to module scan report..."
+                      value={moduleScanLink}
+                      onChange={(e) => setModuleScanLink(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    />
+                    {moduleScanLink && (
+                      <div className="mt-2">
+                        <a
+                          href={moduleScanLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:text-blue-800 text-sm underline"
+                        >
+                          View Module Scan Report →
+                        </a>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -1192,11 +1235,9 @@ export default function InspectorPortal() {
                   }
                 }}
                 disabled={
-                  completeInspectionMutation.isPending || 
+                  completeInspectionMutation.isPending ||
                   !inspectionNotes.trim() ||
-                  uploadedFiles.length === 0 ||
-                  !cosmeticEstimate ||
-                  !mechanicalEstimate
+                  uploadedFiles.length === 0
                 }
                 className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-50"
               >

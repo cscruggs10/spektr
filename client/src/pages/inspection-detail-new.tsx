@@ -133,40 +133,6 @@ const InspectionResultView = ({ inspectionResult }: { inspectionResult: any }) =
         )}
       </div>
 
-      {/* Estimates Section */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-medium">Condition Estimates</h3>
-        <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <p className="font-medium">Cosmetic Condition</p>
-              <div className="rounded-md border p-3">
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-sm font-medium">
-                    {inspectionResult.data && inspectionResult.data.cosmetics_estimate 
-                      ? `$${parseInt(inspectionResult.data.cosmetics_estimate).toLocaleString()}`
-                      : (inspectionResult.data && inspectionResult.data.cosmetic_estimate 
-                        ? `$${parseInt(inspectionResult.data.cosmetic_estimate).toLocaleString()}`
-                        : "$750")}
-                  </span>
-                </div>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <p className="font-medium">Mechanical Condition</p>
-              <div className="rounded-md border p-3">
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-sm font-medium">
-                    {inspectionResult.data && inspectionResult.data.mechanical_estimate 
-                      ? `$${parseInt(inspectionResult.data.mechanical_estimate).toLocaleString()}`
-                      : "$750"}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Voice Notes Section */}
       <div className="space-y-4">
@@ -230,10 +196,6 @@ export default function InspectionDetail() {
   // State for inspection form
   const [photos, setPhotos] = useState<string[]>([]);
   const [videos, setVideos] = useState<string[]>([]);
-  const [cosmeticEstimate, setCosmeticEstimate] = useState<number | null>(null);
-  const [cosmeticDetails, setCosmeticDetails] = useState("");
-  const [mechanicalEstimate, setMechanicalEstimate] = useState<number | null>(null);
-  const [mechanicalDetails, setMechanicalDetails] = useState("");
   
   // State for voice recording
   const [isRecording, setIsRecording] = useState(false);
@@ -419,10 +381,6 @@ export default function InspectionDetail() {
   const completeInspectionMutation = useMutation({
     mutationFn: async () => {
       const inspectionData = {
-        cosmetic_estimate: cosmeticEstimate,
-        cosmetic_details: cosmeticDetails,
-        mechanical_estimate: mechanicalEstimate,
-        mechanical_details: mechanicalDetails,
         photos: photos,
         videos: videos,
       };
@@ -570,18 +528,7 @@ export default function InspectionDetail() {
       
       recognitionRef.current.onend = () => {
         if (finalTranscript.trim()) {
-          // Add transcribed text to appropriate notes field
-          if (cosmeticDetails || mechanicalDetails) {
-            // Add to existing details
-            if (cosmeticDetails) {
-              setCosmeticDetails(prev => prev + (prev ? '\n' : '') + finalTranscript.trim());
-            } else {
-              setMechanicalDetails(prev => prev + (prev ? '\n' : '') + finalTranscript.trim());
-            }
-          } else {
-            // Add to cosmetic details by default
-            setCosmeticDetails(finalTranscript.trim());
-          }
+          // Voice notes are now handled separately - transcribed text is processed but not stored in removed sections
           
           toast({
             title: "Voice Note Transcribed",
@@ -1097,13 +1044,12 @@ export default function InspectionDetail() {
                       </div>
                     </div>
                     <Tabs defaultValue="photos" className="w-full">
-                      <TabsList className="grid w-full grid-cols-6">
+                      <TabsList className="grid w-full grid-cols-5">
                         <TabsTrigger value="photos" className="text-xs">1. Photos</TabsTrigger>
                         <TabsTrigger value="walkaround" className="text-xs">2. Walkaround</TabsTrigger>
                         <TabsTrigger value="engine" className="text-xs">3. Engine</TabsTrigger>
-                        <TabsTrigger value="cosmetics" className="text-xs">4. Cosmetics</TabsTrigger>
-                        <TabsTrigger value="mechanical" className="text-xs">5. Mechanical</TabsTrigger>
-                        <TabsTrigger value="notes" className="text-xs">6. Notes</TabsTrigger>
+                        <TabsTrigger value="module-scan" className="text-xs">4. Module Scan</TabsTrigger>
+                        <TabsTrigger value="notes" className="text-xs">5. Notes</TabsTrigger>
                       </TabsList>
 
                       <div className="mt-6">
@@ -1373,70 +1319,43 @@ export default function InspectionDetail() {
                           </div>
                         </TabsContent>
 
-                        <TabsContent value="cosmetics">
-                          <div className="space-y-6">
+                        <TabsContent value="module-scan">
+                          <div className="space-y-4">
                             <div>
-                              <h3 className="text-lg font-medium">Cosmetic Condition Estimate</h3>
-                              <p className="text-sm font-bold text-gray-800 mb-4 bg-purple-50 p-3 rounded-md border-l-4 border-purple-400">
-                                💰 <strong>REQUIRED:</strong> Provide an estimate for any cosmetic repairs needed
+                              <h3 className="text-lg font-medium">Full Module Scan</h3>
+                              <p className="text-sm font-bold text-gray-800 mb-4 bg-blue-50 p-3 rounded-md border-l-4 border-blue-400">
+                                📊 <strong>OPTIONAL:</strong> Link to module scan report for detailed diagnostic information
                               </p>
-                              
-                              <div className="grid gap-4">
-                                <div className="space-y-2">
-                                  <Label htmlFor="cosmetic-estimate">Cosmetic Repair Estimate ($)</Label>
-                                  <Input 
-                                    id="cosmetic-estimate" 
-                                    type="number"
-                                    placeholder="Enter estimate amount"
-                                    value={cosmeticEstimate === null ? '' : cosmeticEstimate}
-                                    onChange={(e) => setCosmeticEstimate(e.target.value ? Number(e.target.value) : null)}
-                                  />
-                                </div>
-                                
-                                <div className="space-y-2">
-                                  <Label htmlFor="cosmetic-details">Details</Label>
-                                  <Textarea 
-                                    id="cosmetic-details" 
-                                    placeholder="Enter details about cosmetic issues..."
-                                    value={cosmeticDetails}
-                                    onChange={(e) => setCosmeticDetails(e.target.value)}
-                                    className="min-h-[100px]"
-                                  />
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </TabsContent>
 
-                        <TabsContent value="mechanical">
-                          <div className="space-y-6">
-                            <div>
-                              <h3 className="text-lg font-medium">Mechanical Condition Estimate</h3>
-                              <p className="text-sm font-bold text-gray-800 mb-4 bg-red-50 p-3 rounded-md border-l-4 border-red-400">
-                                🔧 <strong>REQUIRED:</strong> Provide an estimate for any mechanical repairs needed
-                              </p>
-                              
-                              <div className="grid gap-4">
-                                <div className="space-y-2">
-                                  <Label htmlFor="mechanical-estimate">Mechanical Repair Estimate ($)</Label>
-                                  <Input 
-                                    id="mechanical-estimate" 
-                                    type="number"
-                                    placeholder="Enter estimate amount"
-                                    value={mechanicalEstimate === null ? '' : mechanicalEstimate}
-                                    onChange={(e) => setMechanicalEstimate(e.target.value ? Number(e.target.value) : null)}
-                                  />
+                              <div className="space-y-4">
+                                <div className="p-4 border rounded-lg bg-gray-50">
+                                  <div className="flex items-center justify-between">
+                                    <div>
+                                      <h4 className="font-medium">Module Scan Report</h4>
+                                      <p className="text-sm text-gray-600">Access detailed diagnostic scan results</p>
+                                    </div>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      onClick={() => {
+                                        // TODO: Implement module scan report link functionality
+                                        window.open('#', '_blank');
+                                      }}
+                                    >
+                                      View Report
+                                    </Button>
+                                  </div>
                                 </div>
-                                
-                                <div className="space-y-2">
-                                  <Label htmlFor="mechanical-details">Details</Label>
-                                  <Textarea 
-                                    id="mechanical-details" 
-                                    placeholder="Enter details about mechanical issues..."
-                                    value={mechanicalDetails}
-                                    onChange={(e) => setMechanicalDetails(e.target.value)}
-                                    className="min-h-[100px]"
-                                  />
+
+                                <div className="text-sm text-gray-500">
+                                  <p>The module scan report provides comprehensive diagnostic information including:</p>
+                                  <ul className="list-disc list-inside mt-2 space-y-1">
+                                    <li>Engine control module data</li>
+                                    <li>Transmission diagnostics</li>
+                                    <li>ABS and safety system status</li>
+                                    <li>Emission control information</li>
+                                    <li>Body control module readings</li>
+                                  </ul>
                                 </div>
                               </div>
                             </div>
