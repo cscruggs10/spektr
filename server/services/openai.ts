@@ -30,8 +30,16 @@ export async function translateSpanishToEnglish(text: string): Promise<string> {
 
 export async function transcribeAudioToText(audioBlob: Blob, language: string = 'en'): Promise<string> {
   try {
-    // Convert blob to file
-    const audioFile = new File([audioBlob], "voice_note.webm", { type: audioBlob.type });
+    // Convert blob to buffer for Node.js
+    const arrayBuffer = await audioBlob.arrayBuffer();
+    const audioBuffer = Buffer.from(arrayBuffer);
+
+    // Create a file-like object that OpenAI expects
+    const audioFile = {
+      buffer: audioBuffer,
+      name: "voice_note.webm",
+      type: audioBlob.type
+    } as any;
 
     const transcription = await openai.audio.transcriptions.create({
       file: audioFile,
