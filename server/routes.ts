@@ -2648,6 +2648,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Transcribe voice note endpoint
+  app.post("/api/transcribe-voice", cloudinaryUpload.single('audio'), async (req, res) => {
+    try {
+      const audioFile = req.file;
+      const language = req.body.language || 'en';
+
+      if (!audioFile) {
+        return res.status(400).json({ error: "No audio file provided" });
+      }
+
+      console.log('Transcribing voice note:', { language, file: audioFile.originalname });
+
+      // Download the audio file from Cloudinary
+      const audioResponse = await fetch(audioFile.path);
+      const audioBlob = await audioResponse.blob();
+
+      // Transcribe the audio
+      const { transcribeAudioToText, translateSpanishToEnglish } = await import('./services/openai.js');
+      let transcribedText = await transcribeAudioToText(audioBlob, language);
+
+      // If the voice was in Spanish, translate to English
+      if (language === 'es' && transcribedText) {
+        console.log('Translating Spanish to English');
+        transcribedText = await translateSpanishToEnglish(transcribedText);
+      }
+
+      console.log('Transcription successful:', transcribedText.substring(0, 100) + '...');
+
+      res.json({
+        success: true,
+        transcription: transcribedText,
+        originalLanguage: language
+      });
+    } catch (error) {
+      console.error('Transcription error:', error);
+      res.status(500).json({
+        error: "Failed to transcribe audio",
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   // Upload photos/videos for inspection result with extended timeout
   app.post("/api/inspections/:id/uploads", (req, res, next) => {
     // Extend timeout for large file uploads

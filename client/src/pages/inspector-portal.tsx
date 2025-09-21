@@ -246,7 +246,9 @@ export default function InspectorPortal() {
       formData.append("notes", inspectionNotes);
       formData.append("module_scan_link", moduleScanLink);
       formData.append("is_recommended", isRecommended.toString());
-      
+
+      // Only send voice note if it hasn't been transcribed yet
+      // (If voiceNote is still present, user didn't click "Transcribe to Notes")
       if (voiceNote) {
         formData.append("voice_note", voiceNote, "voice_note.webm");
         formData.append("voice_language", language); // Send language preference
@@ -313,6 +315,56 @@ export default function InspectorPortal() {
       mediaRecorder.stop();
       setMediaRecorder(null);
       setIsRecording(false);
+    }
+  };
+
+  // Transcribe voice note and add to notes
+  const transcribeVoiceNote = async () => {
+    if (!voiceNote) return;
+
+    const loadingToast = toast({
+      title: "Transcribing voice note...",
+      description: "Converting your voice to text",
+    });
+
+    try {
+      const formData = new FormData();
+      formData.append('audio', voiceNote, 'voice_note.webm');
+      formData.append('language', language);
+
+      const response = await fetch('/api/transcribe-voice', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Add transcribed text to existing notes
+        const separator = inspectionNotes.trim() ? '\n\n' : '';
+        setInspectionNotes(prev => prev + separator + result.transcription);
+
+        loadingToast.dismiss();
+        toast({
+          title: "Voice transcribed successfully!",
+          description: "Your voice note has been converted to text",
+        });
+
+        // Clear the voice note after successful transcription
+        setVoiceNote(null);
+        // Mark notes as complete
+        setSectionStatus(prev => ({ ...prev, notes: true }));
+      } else {
+        throw new Error(result.error || 'Transcription failed');
+      }
+    } catch (error) {
+      console.error('Transcription error:', error);
+      loadingToast.dismiss();
+      toast({
+        title: "Transcription failed",
+        description: "Could not convert voice to text. You can still submit with voice note.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -1055,23 +1107,49 @@ export default function InspectorPortal() {
                       </span>
                     </div>
                     {voiceNote && (
-                      <div className="p-3 bg-gray-50 rounded border space-y-2">
+                      <div className="p-3 bg-purple-50 rounded border border-purple-200 space-y-3">
                         <div className="flex items-center justify-between">
-                          <span className="text-sm text-green-600">✓ Voice note recorded</span>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              const audio = new Audio(URL.createObjectURL(voiceNote));
-                              audio.play();
-                            }}
-                            className="text-purple-600 border-purple-300 hover:bg-purple-50"
-                          >
-                            <Play className="h-3 w-3 mr-1" />
-                            Play
-                          </Button>
+                          <span className="text-sm text-green-600 font-medium">✓ Voice note recorded</span>
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                const audio = new Audio(URL.createObjectURL(voiceNote));
+                                audio.play();
+                              }}
+                              className="text-purple-600 border-purple-300 hover:bg-purple-50"
+                            >
+                              <Play className="h-3 w-3 mr-1" />
+                              Play
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setVoiceNote(null);
+                              }}
+                              className="text-red-600 border-red-300 hover:bg-red-50"
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
                         </div>
+                        <Button
+                          type="button"
+                          variant="default"
+                          size="sm"
+                          onClick={transcribeVoiceNote}
+                          className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+                        >
+                          <Mic className="h-4 w-4 mr-2" />
+                          Transcribe to Notes
+                        </Button>
+                        <p className="text-xs text-gray-600 text-center">
+                          Click to convert voice to text and add to notes field
+                        </p>
                       </div>
                     )}
                   </div>
