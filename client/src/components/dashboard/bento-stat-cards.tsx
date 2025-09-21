@@ -98,7 +98,7 @@ export default function BentoStatCards() {
   ];
 
   return (
-    <BentoGrid className="mb-12">
+    <BentoGrid className="mb-8">
       {statCards.map((card, index) => (
         <Link key={index} href={card.link}>
           <BentoCard

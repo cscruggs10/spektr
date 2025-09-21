@@ -476,7 +476,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ------------------------
   // Inspector routes
   // ------------------------
-  
+
+  // Inspector login endpoint
+  app.post("/api/inspector/login", async (req, res) => {
+    try {
+      const { password } = req.body;
+
+      if (!password) {
+        return res.status(400).json({ error: "Password is required" });
+      }
+
+      // Find inspector by password
+      const inspector = await storage.getInspectorByPassword(password);
+
+      if (!inspector) {
+        return res.status(401).json({ error: "Invalid password" });
+      }
+
+      // Return inspector data without password
+      const { password: _, ...inspectorData } = inspector;
+      res.json({ inspector: inspectorData });
+    } catch (error) {
+      console.error("Inspector login error:", error);
+      res.status(500).json({ error: "Login failed" });
+    }
+  });
+
+  // Get inspector by ID for authenticated inspector
+  app.get("/api/inspector/:id", async (req, res) => {
+    try {
+      const inspectorId = parseInt(req.params.id);
+      const inspector = await storage.getInspectorById(inspectorId);
+
+      if (!inspector) {
+        return res.status(404).json({ error: "Inspector not found" });
+      }
+
+      res.json(inspector);
+    } catch (error) {
+      console.error("Error fetching inspector:", error);
+      res.status(500).json({ error: "Failed to fetch inspector" });
+    }
+  });
+
   // Get all inspectors
   app.get("/api/inspectors", async (req, res) => {
     try {

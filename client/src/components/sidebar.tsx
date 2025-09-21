@@ -1,13 +1,16 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
+import { useAuth } from "@/contexts/auth-context";
+import { Button } from "@/components/ui/button";
 
 export default function Sidebar() {
   const [location] = useLocation();
+  const { userEmail, logout } = useAuth();
 
   // Primary workflow items
   const operationsLinks = [
-    { href: "/", label: "Dashboard", icon: "fas fa-th-large", gradient: "from-blue-500 to-purple-600" },
+    { href: "/dashboard", label: "Dashboard", icon: "fas fa-th-large", gradient: "from-blue-500 to-purple-600" },
     { href: "/inspections", label: "Active Inspections", icon: "fas fa-clipboard-check", gradient: "from-green-500 to-teal-600" },
     { href: "/completed-inspections", label: "Completed", icon: "fas fa-check-circle", gradient: "from-green-600 to-emerald-600" },
   ];
@@ -165,6 +168,22 @@ export default function Sidebar() {
             </motion.div>
           );
         })}
+
+        {/* User section */}
+        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-700/50">
+          <div className="text-xs text-gray-400 mb-3">
+            Signed in as: {userEmail}
+          </div>
+          <Button
+            onClick={logout}
+            variant="outline"
+            size="sm"
+            className="w-full text-gray-400 border-gray-600 hover:bg-gray-700 hover:text-white"
+          >
+            <i className="fas fa-sign-out-alt mr-2"></i>
+            Sign Out
+          </Button>
+        </div>
       </nav>
     </div>
   );

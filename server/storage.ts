@@ -46,6 +46,8 @@ export interface IStorage {
   getInspectors(): Promise<(Inspector & { user: User, auctions?: Auction[] })[]>;
   getInspectorsByAuction(auctionId: number): Promise<(Inspector & { user: User })[]>;
   getInspector(id: number): Promise<Inspector | undefined>;
+  getInspectorById(id: number): Promise<(Inspector & { user: User }) | undefined>;
+  getInspectorByPassword(password: string): Promise<(Inspector & { user: User }) | undefined>;
   createInspector(inspector: InsertInspector): Promise<Inspector>;
   updateInspector(id: number, data: Partial<InsertInspector>): Promise<Inspector | undefined>;
   
@@ -270,7 +272,35 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return updatedInspector;
   }
-  
+
+  async getInspectorById(id: number): Promise<(Inspector & { user: User }) | undefined> {
+    const [result] = await db.select()
+      .from(inspectors)
+      .innerJoin(users, eq(inspectors.user_id, users.id))
+      .where(eq(inspectors.id, id));
+
+    if (!result) return undefined;
+
+    return {
+      ...result.inspectors,
+      user: result.users
+    };
+  }
+
+  async getInspectorByPassword(password: string): Promise<(Inspector & { user: User }) | undefined> {
+    const [result] = await db.select()
+      .from(inspectors)
+      .innerJoin(users, eq(inspectors.user_id, users.id))
+      .where(eq(users.password, password));
+
+    if (!result) return undefined;
+
+    return {
+      ...result.inspectors,
+      user: result.users
+    };
+  }
+
   // Inspector-Auction assignments
   async getInspectorAuctions(inspectorId: number): Promise<InspectorAuction[]> {
     return db.select()
