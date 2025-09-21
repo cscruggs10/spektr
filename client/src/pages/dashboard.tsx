@@ -1,7 +1,6 @@
 import { Helmet } from "react-helmet";
 import { motion } from "framer-motion";
 import BentoStatCards from "@/components/dashboard/bento-stat-cards";
-import BentoInspectionOverview from "@/components/dashboard/bento-inspection-overview";
 import BentoRecentActivity from "@/components/dashboard/bento-recent-activity";
 import { BentoGrid } from "@/components/ui/bento-grid";
 
@@ -17,14 +16,14 @@ export default function Dashboard() {
       </Helmet>
       
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50/30 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900/10">
-        <div className="py-8">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="py-12">
+          <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
             {/* Header */}
             <motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
-              className="mb-8"
+              className="mb-12"
             >
               <div className="flex items-center justify-between">
                 <div>
@@ -69,7 +68,6 @@ export default function Dashboard() {
 
               {/* Main Content Grid */}
               <BentoGrid>
-                <BentoInspectionOverview />
                 <BentoRecentActivity />
               </BentoGrid>
             </motion.div>

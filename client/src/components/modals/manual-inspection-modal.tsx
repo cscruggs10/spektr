@@ -166,8 +166,8 @@ export default function ManualInspectionModal({
         </DialogHeader>
         
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Auction Selection */}
               <FormField
                 control={form.control}
@@ -234,7 +234,7 @@ export default function ManualInspectionModal({
               />
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* VIN Field */}
               <FormField
                 control={form.control}

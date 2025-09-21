@@ -16,7 +16,7 @@ import {
   type SharedReport, type InsertSharedReport
 } from "../shared/schema.js";
 import { db } from "./db";
-import { eq, and, or, gte, lte, desc, sql, between, inArray } from "drizzle-orm";
+import { eq, and, or, gte, lte, desc, sql, between, inArray, isNotNull } from "drizzle-orm";
 
 export interface IStorage {
   // User management
@@ -153,6 +153,8 @@ export interface IStorage {
     completedToday: number;
     todayMatches: number;
     activeDealers: number;
+    avgCompletionTime: number;
+    activeInspectors: number;
   }>;
   getUpcomingInspections(limit?: number): Promise<(Inspection & { 
     vehicle: Vehicle;
@@ -922,6 +924,8 @@ export class DatabaseStorage implements IStorage {
     completedToday: number;
     todayMatches: number;
     activeDealers: number;
+    avgCompletionTime: number;
+    activeInspectors: number;
   }> {
     // Get pending inspections count
     const pendingInspectionsResult = await db.select({ count: sql<number>`count(*)` })
@@ -951,12 +955,40 @@ export class DatabaseStorage implements IStorage {
     const activeDealersResult = await db.select({ count: sql<number>`count(*)` })
       .from(dealers)
       .where(eq(dealers.status, "active"));
-    
+
+    // Get active inspectors count (inspectors with inspections in the last 7 days)
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const activeInspectorsResult = await db.selectDistinct({ inspector_id: inspections.inspector_id })
+      .from(inspections)
+      .where(
+        and(
+          isNotNull(inspections.inspector_id),
+          gte(inspections.start_date, sevenDaysAgo)
+        )
+      );
+
+    // Calculate average completion time in minutes
+    const completionTimesResult = await db.select({
+      avgMinutes: sql<number>`AVG(EXTRACT(EPOCH FROM (end_date - start_date)) / 60)`
+    })
+      .from(inspections)
+      .where(
+        and(
+          eq(inspections.status, "completed"),
+          isNotNull(inspections.start_date),
+          isNotNull(inspections.end_date)
+        )
+      );
+
     return {
       pendingInspections: pendingInspectionsResult[0]?.count || 0,
       completedToday: completedTodayResult[0]?.count || 0,
       todayMatches: vehiclesCreatedToday[0]?.count || 0,
-      activeDealers: activeDealersResult[0]?.count || 0
+      activeDealers: activeDealersResult[0]?.count || 0,
+      avgCompletionTime: Math.round(completionTimesResult[0]?.avgMinutes || 0),
+      activeInspectors: activeInspectorsResult.length
     };
   }
 

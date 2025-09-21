@@ -34,70 +34,63 @@ export default function BentoStatCards() {
     );
   }
 
+  // Calculate revenue based on completed inspections ($15 per inspection)
+  const completedToday = stats?.completedToday || 0;
+  const monthlyCompletedInspections = (completedToday * 30); // Approximate monthly based on daily average
+  const monthlyRevenue = monthlyCompletedInspections * 15;
+
   const statCards = [
     {
       title: "Pending Inspections",
-      value: stats?.pendingInspections || 24,
+      value: stats?.pendingInspections || 0,
       icon: "fas fa-clock",
       gradient: "orange" as const,
-      size: "md" as const,
+      size: "lg" as const,
       description: "Awaiting inspector assignment",
       link: "/inspections?status=pending",
       trend: "up" as const,
       trendValue: "+12%"
     },
     {
-      title: "Completed Today", 
-      value: stats?.completedToday || 18,
+      title: "Completed Today",
+      value: completedToday,
       icon: "fas fa-check-circle",
       gradient: "green" as const,
-      size: "sm" as const,
+      size: "md" as const,
       description: "Successfully completed",
-      link: "/inspections?status=completed",
+      link: "/completed-inspections",
       trend: "up" as const,
       trendValue: "+8%"
     },
     {
       title: "Active Inspectors",
-      value: stats?.activeInspectors || 12,
+      value: stats?.activeInspectors || 0,
       icon: "fas fa-user-hard-hat",
       gradient: "blue" as const,
-      size: "sm" as const,
-      description: "Currently working",
+      size: "md" as const,
+      description: "Active in last 7 days",
       link: "/inspectors",
       trend: "neutral" as const,
       trendValue: "0%"
     },
     {
-      title: "Today's Matches",
-      value: stats?.todayMatches || 42,
-      icon: "fas fa-bullseye",
-      gradient: "purple" as const,
-      size: "lg" as const,
-      orientation: "tall" as const,
-      description: "Vehicles matched to dealer preferences using AI-powered analysis",
-      link: "/buy-box",
-      trend: "up" as const,
-      trendValue: "+24%"
-    },
-    {
       title: "Revenue This Month",
-      value: `$${((stats?.monthlyRevenue || 85000) / 1000).toFixed(1)}k`,
+      value: `$${(monthlyRevenue / 1000).toFixed(1)}k`,
       icon: "fas fa-dollar-sign",
       gradient: "green" as const,
-      size: "md" as const,
-      description: "Total inspection fees collected",
+      size: "lg" as const,
+      description: `$15 per inspection × ${monthlyCompletedInspections} inspections`,
       link: "/dashboard",
       trend: "up" as const,
       trendValue: "+15%"
     },
     {
       title: "Avg. Completion Time",
-      value: `${stats?.avgCompletionTime || 2.4}h`,
+      value: `${stats?.avgCompletionTime || 0}min`,
       icon: "fas fa-stopwatch",
       gradient: "gray" as const,
-      size: "sm" as const,
-      description: "Per inspection",
+      size: "md" as const,
+      description: "From start to completion",
       link: "/dashboard",
       trend: "down" as const,
       trendValue: "-5%"
@@ -105,7 +98,7 @@ export default function BentoStatCards() {
   ];
 
   return (
-    <BentoGrid className="mb-8">
+    <BentoGrid className="mb-12">
       {statCards.map((card, index) => (
         <Link key={index} href={card.link}>
           <BentoCard
