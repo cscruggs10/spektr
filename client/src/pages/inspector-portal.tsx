@@ -12,6 +12,7 @@ import { Loader2, Play, CheckCircle, Car, Clock, MapPin, FileText, User, LogOut,
 import { format } from "date-fns";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation, type Language } from "@/lib/translations";
 
 function formatDateTime(date: string | Date | null) {
   if (!date) return "N/A";
@@ -43,7 +44,7 @@ export default function InspectorPortal() {
   const [skipReason, setSkipReason] = useState("");
   const [skipNote, setSkipNote] = useState("");
   const [skipPhoto, setSkipPhoto] = useState<File | null>(null);
-  
+
   // Inspection form data
   const [moduleScanLink, setModuleScanLink] = useState<string>("");
   const [isRecording, setIsRecording] = useState(false);
@@ -51,8 +52,11 @@ export default function InspectorPortal() {
   const [voiceNote, setVoiceNote] = useState<Blob | null>(null);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [isRecommended, setIsRecommended] = useState(false);
-  const [language, setLanguage] = useState<'en' | 'es'>('en');
+  const [language, setLanguage] = useState<Language>('en');
   const [isDaylightMode, setIsDaylightMode] = useState(false);
+
+  // Translation hook
+  const { t } = useTranslation(language);
   
   // Track completion status for each section
   const [sectionStatus, setSectionStatus] = useState({
@@ -335,13 +339,13 @@ export default function InspectorPortal() {
           {/* Simple Card with Dropdown */}
           <Card className="border-2 border-gray-600 bg-gray-800/90 backdrop-blur shadow-2xl">
             <CardHeader>
-              <CardTitle className="text-2xl font-bold text-white">Welcome Inspector</CardTitle>
-              <p className="text-gray-300 mt-2">Select your name to access inspections</p>
+              <CardTitle className="text-2xl font-bold text-white">{t('welcomeInspector')}</CardTitle>
+              <p className="text-gray-300 mt-2">{t('selectYourName')}</p>
             </CardHeader>
             <CardContent className="space-y-6">
               <Select onValueChange={setInspectorId} disabled={loadingInspectors}>
                 <SelectTrigger className="h-14 text-lg font-semibold bg-white/95 text-gray-900 border-2 border-gray-300 hover:bg-white">
-                  <SelectValue placeholder={loadingInspectors ? "Loading..." : "Choose Your Name"} />
+                  <SelectValue placeholder={loadingInspectors ? "Loading..." : t('chooseYourName')} />
                 </SelectTrigger>
                 <SelectContent className="bg-white">
                   {inspectors.map((inspector) => (
@@ -357,16 +361,16 @@ export default function InspectorPortal() {
               </Select>
               
               {/* Training Guide Link */}
-              <a 
-                href="/inspector-training-guide.html" 
+              <a
+                href="/inspector-training-guide.html"
                 target="_blank"
                 className="inline-flex items-center justify-center text-blue-400 hover:text-blue-300 font-semibold text-lg underline"
               >
-                📚 View Training Guide
+                {t('viewTrainingGuide')}
               </a>
-              
+
               <p className="text-sm text-gray-400">
-                Contact support if you don't see your name
+                {t('contactSupport')}
               </p>
             </CardContent>
           </Card>
@@ -386,7 +390,7 @@ export default function InspectorPortal() {
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
                   <img src="/spektr-logo.svg" alt="Spektr" className="w-6 h-6 text-white" />
                 </div>
-                <h1 className="text-2xl font-bold text-white">Inspector Portal</h1>
+                <h1 className="text-2xl font-bold text-white">{t('inspectorPortal')}</h1>
               </div>
             </div>
             <div className="flex items-center space-x-4">
@@ -436,7 +440,7 @@ export default function InspectorPortal() {
                 }}
               >
                 <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
+                {t('signOut')}
               </Button>
             </div>
           </div>
@@ -446,8 +450,8 @@ export default function InspectorPortal() {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">My Assigned Inspections</h2>
-          <p className="text-gray-600 mt-2 text-lg">View and manage your vehicle inspection assignments</p>
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">{t('myAssignedInspections')}</h2>
+          <p className="text-gray-600 mt-2 text-lg">{t('viewAndManageInspections')}</p>
         </div>
 
         {/* Auction Filter */}
@@ -507,10 +511,10 @@ export default function InspectorPortal() {
                     </Badge>
                     <div className="flex items-center gap-2">
                       <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300 font-bold">
-                        Lane {inspection.vehicle?.lane_number || "N/A"}
+                        {t('lane')} {inspection.vehicle?.lane_number || "N/A"}
                       </Badge>
                       <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300 font-bold">
-                        Run {inspection.vehicle?.run_number || "N/A"}
+                        {t('run')} {inspection.vehicle?.run_number || "N/A"}
                       </Badge>
                     </div>
                   </div>
@@ -542,7 +546,7 @@ export default function InspectorPortal() {
                         ) : (
                           <Play className="h-4 w-4 mr-2" />
                         )}
-                        Start Inspection
+{t('startInspection')}
                       </Button>
                     )}
                     

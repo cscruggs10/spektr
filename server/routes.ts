@@ -2473,20 +2473,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const audioResponse = await fetch(voiceNoteFile.path);
             const audioBlob = await audioResponse.blob();
             
-            // Transcribe the audio
+            // Transcribe the audio with language parameter
             const { transcribeAudioToText, translateSpanishToEnglish } = await import('./services/openai.js');
-            let transcribedText = await transcribeAudioToText(audioBlob);
-            
-            // If the voice was in Spanish, translate to English
+            let transcribedText = await transcribeAudioToText(audioBlob, voiceLanguage);
+
+            // If the voice was in Spanish, translate to English for consistency
             if (voiceLanguage === 'es' && transcribedText) {
               console.log('Translating Spanish voice note to English');
               transcribedText = await translateSpanishToEnglish(transcribedText);
             }
-            
-            // Append transcribed text to notes
+
+            // Integrate transcribed text seamlessly with existing notes (no separate section header)
             const existingNotes = requestData.notes || '';
-            const voiceNoteText = `\n\n[Voice Note Transcription]:\n${transcribedText}`;
-            requestData.notes = existingNotes ? `${existingNotes}${voiceNoteText}` : voiceNoteText.trim();
+            const separator = existingNotes.trim() ? '\n\n' : '';
+            requestData.notes = existingNotes ? `${existingNotes}${separator}${transcribedText}` : transcribedText;
             
             console.log('Voice note successfully transcribed and added to notes');
           } catch (error) {

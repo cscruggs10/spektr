@@ -28,15 +28,15 @@ export async function translateSpanishToEnglish(text: string): Promise<string> {
   }
 }
 
-export async function transcribeAudioToText(audioBlob: Blob): Promise<string> {
+export async function transcribeAudioToText(audioBlob: Blob, language: string = 'en'): Promise<string> {
   try {
     // Convert blob to file
     const audioFile = new File([audioBlob], "voice_note.webm", { type: audioBlob.type });
-    
+
     const transcription = await openai.audio.transcriptions.create({
       file: audioFile,
       model: "whisper-1",
-      language: "es" // Specify Spanish for better accuracy
+      language: language === 'es' ? 'es' : 'en' // Use dynamic language detection
     });
 
     return transcription.text;
