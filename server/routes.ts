@@ -2458,6 +2458,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (req.body.mechanical_estimate) requestData.mechanical_estimate = parseFloat(req.body.mechanical_estimate);
         if (req.body.mechanical_details) requestData.mechanical_details = req.body.mechanical_details;
         if (req.body.is_recommended !== undefined) requestData.is_recommended = req.body.is_recommended === 'true';
+        if (req.body.module_scan_link) requestData.module_scan_link = req.body.module_scan_link;
         
         console.log('Extracted FormData:', requestData);
         
@@ -2531,13 +2532,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const updatedInspection = await storage.updateInspection(id, data);
-      
+
+      // If marking as completed and has module_scan_link, create/update inspection result
+      if (data.status === 'completed' && requestData.module_scan_link) {
+        try {
+          // Check if result already exists
+          const existingResult = await storage.getInspectionResult(id);
+
+          const resultData = {
+            inspection_id: id,
+            data: existingResult?.data || {},
+            photos: existingResult?.photos || [],
+            videos: existingResult?.videos || [],
+            links: existingResult?.links || []
+          };
+
+          // Add module scan link to links array
+          if (requestData.module_scan_link.trim()) {
+            // Remove any existing module scan links
+            resultData.links = resultData.links.filter((link: any) => link.type !== 'module_scan');
+
+            // Add new module scan link
+            resultData.links.push({
+              type: 'module_scan',
+              url: requestData.module_scan_link.trim(),
+              label: 'Full Module Scan Report',
+              created_at: new Date().toISOString()
+            });
+
+            // Also store in data for backward compatibility
+            resultData.data.module_scan_link = requestData.module_scan_link.trim();
+          }
+
+          if (existingResult) {
+            // Update existing result
+            await storage.updateInspectionResult(existingResult.id, resultData);
+            console.log('Updated inspection result with module scan link');
+          } else {
+            // Create new result
+            await storage.createInspectionResult(resultData);
+            console.log('Created inspection result with module scan link');
+          }
+        } catch (error) {
+          console.error('Error saving inspection result:', error);
+          // Don't fail the whole request if result save fails
+        }
+      }
+
       // Log activity
-      await logActivity(7, "Inspection updated", { 
+      await logActivity(7, "Inspection updated", {
         inspection_id: id,
         updates: req.body
       });
-      
+
       res.json(updatedInspection);
     } catch (error) {
       console.error("Error updating inspection:", error);
