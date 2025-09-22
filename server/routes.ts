@@ -173,7 +173,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.createUser(validation.data);
       
       // Log activity
-      await logActivity(7, "User created", { 
+      await logActivity(null, "User created", { 
         user_id: user.id, 
         username: user.username,
         role: user.role
@@ -430,7 +430,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const dealer = await storage.createDealer(validation.data);
       
       // Log activity
-      await logActivity(7, "Dealer created", { 
+      await logActivity(null, "Dealer created", { 
         dealer_id: dealer.id, 
         name: dealer.name
       });
@@ -461,7 +461,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updatedDealer = await storage.updateDealer(id, validation.data);
       
       // Log activity
-      await logActivity(7, "Dealer updated", { 
+      await logActivity(null, "Dealer updated", { 
         dealer_id: id, 
         updates: req.body
       });
@@ -586,7 +586,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Log activity
-      await logActivity(7, "Inspector assigned to auction", { 
+      await logActivity(null, "Inspector assigned to auction", { 
         inspector_id: inspectorId,
         auction_id: auctionId
       });
@@ -617,7 +617,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.removeInspectorFromAuction(inspectorId, auctionId);
       
       // Log activity
-      await logActivity(7, "Inspector removed from auction", { 
+      await logActivity(null, "Inspector removed from auction", { 
         inspector_id: inspectorId,
         auction_id: auctionId
       });
@@ -641,7 +641,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const inspector = await storage.createInspector(validation.data);
       
       // Log activity
-      await logActivity(7, "Inspector created", { 
+      await logActivity(null, "Inspector created", { 
         inspector_id: inspector.id, 
         user_id: inspector.user_id
       });
@@ -666,7 +666,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updatedInspector = await storage.updateInspector(id, req.body);
       
       // Log activity
-      await logActivity(7, "Inspector updated", { 
+      await logActivity(null, "Inspector updated", { 
         inspector_id: id, 
         updates: req.body
       });
@@ -705,7 +705,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader('Content-Length', excelBuffer.length);
       
       // Log activity
-      await logActivity(7, "Buy box exported", { 
+      await logActivity(null, "Buy box exported", { 
         dealer_id: dealerId,
         item_count: items.length
       });
@@ -759,7 +759,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const item = await storage.createBuyBoxItem(validation.data);
       
       // Log activity
-      await logActivity(7, "Buy box item created", { 
+      await logActivity(null, "Buy box item created", { 
         item_id: item.id, 
         dealer_id: item.dealer_id,
         make: item.make,
@@ -792,7 +792,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updatedItem = await storage.updateBuyBoxItem(id, validation.data);
       
       // Log activity
-      await logActivity(7, "Buy box item updated", { 
+      await logActivity(null, "Buy box item updated", { 
         item_id: id, 
         updates: req.body
       });
@@ -817,7 +817,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.deleteBuyBoxItem(id);
       
       // Log activity
-      await logActivity(7, "Buy box item deleted", { 
+      await logActivity(null, "Buy box item deleted", { 
         item_id: id,
         dealer_id: item.dealer_id,
         make: item.make,
@@ -855,7 +855,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Log activity
-      await logActivity(7, "Buy box item duplicated", { 
+      await logActivity(null, "Buy box item duplicated", { 
         source_item_id: sourceId,
         new_item_id: newItem.id,
         source_dealer_id: sourceItem.dealer_id,
@@ -989,7 +989,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Auction created successfully:", auction);
       
       // Log activity
-      await logActivity(7, "Auction created", { 
+      await logActivity(null, "Auction created", { 
         auction_id: auction.id, 
         name: auction.name
       });
@@ -1032,7 +1032,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Log the activity
-      await logActivity(7, "Auction deleted", { 
+      await logActivity(null, "Auction deleted", { 
         auction_id: id, 
         name: auction.name
       });
@@ -1089,7 +1089,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const schedule = await storage.createAuctionSchedule(validation.data);
       
       // Log activity
-      await logActivity(7, "Auction Schedule Created", { 
+      await logActivity(null, "Auction Schedule Created", { 
         scheduleId: schedule.id,
         auctionId: schedule.auction_id,
         dayType: schedule.day_type
@@ -1121,7 +1121,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updatedSchedule = await storage.updateAuctionSchedule(id, validation.data);
       
       // Log activity
-      await logActivity(7, "Auction Schedule Updated", { 
+      await logActivity(null, "Auction Schedule Updated", { 
         scheduleId: id
       });
       
@@ -1145,7 +1145,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.deleteAuctionSchedule(id);
       
       // Log activity
-      await logActivity(7, "Auction Schedule Deleted", { 
+      await logActivity(null, "Auction Schedule Deleted", { 
         scheduleId: id,
         auctionId: existingSchedule.auction_id
       });
@@ -1202,7 +1202,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const mapping = await storage.createColumnMapping(validation.data);
       
       // Log activity
-      await logActivity(7, "Column Mapping Created", { 
+      await logActivity(null, "Column Mapping Created", { 
         mapping_id: mapping.id,
         auction_id: mapping.auction_id,
         name: mapping.name
@@ -1234,7 +1234,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updatedMapping = await storage.updateColumnMapping(id, validation.data);
       
       // Log activity
-      await logActivity(7, "Column Mapping Updated", { 
+      await logActivity(null, "Column Mapping Updated", { 
         mapping_id: id,
         name: mapping.name
       });
@@ -1406,7 +1406,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // If we don't have a mapping, return the runlist with a sample record for column mapping
         if (!hasMapping) {
           // Log activity for the upload itself
-          await logActivity(7, "Runlist uploaded, waiting for column mapping", { 
+          await logActivity(null, "Runlist uploaded, waiting for column mapping", { 
             runlist_id: runlist.id,
             auction_id: auctionId,
             record_count: records.length
@@ -1469,7 +1469,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const buyBoxMatches = await storage.matchVehiclesToBuyBoxes(createdVehicles);
         
         // Log activity
-        await logActivity(7, "Runlist uploaded and processed", { 
+        await logActivity(null, "Runlist uploaded and processed", { 
           runlist_id: runlist.id,
           auction_id: auctionId,
           vehicle_count: vehicles.length,
@@ -1737,7 +1737,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Log activity
-      await logActivity(7, "Runlist processed", { 
+      await logActivity(null, "Runlist processed", { 
         runlist_id: runlist.id,
         vehicle_count: vehicleCount,
         match_count: matchCount
@@ -1850,7 +1850,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const buyBoxMatches = await storage.matchVehiclesToBuyBoxes(createdVehicles);
         
         // Log activity
-        await logActivity(7, "Runlist processed", { 
+        await logActivity(null, "Runlist processed", { 
           runlist_id: runlistId,
           auction_id: runlist.auction_id,
           vehicle_count: vehicles.length,
@@ -1900,7 +1900,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const template = await storage.createInspectionTemplate(validation.data);
       
       // Log activity
-      await logActivity(7, "Inspection template created", { 
+      await logActivity(null, "Inspection template created", { 
         template_id: template.id, 
         dealer_id: template.dealer_id,
         name: template.name
@@ -1949,7 +1949,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updatedTemplate = await storage.updateInspectionTemplate(id, validation.data);
       
       // Log activity
-      await logActivity(7, "Inspection template updated", { 
+      await logActivity(null, "Inspection template updated", { 
         template_id: id,
         dealer_id: template.dealer_id,
         name: template.name
@@ -2050,7 +2050,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Log activity
-      await logActivity(7, "VIN decoded", { vin });
+      await logActivity(null, "VIN decoded", { vin });
       
     } catch (error) {
       console.error(`Error decoding VIN ${req.params.vin}:`, error);
@@ -2369,7 +2369,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         createdInspections.push(inspection);
         
         // Log activity for each created inspection (using default user for system actions)
-        await logActivity(7, "Batch inspection created", { 
+        await logActivity(null, "Batch inspection created", { 
           inspection_id: inspection.id, 
           vehicle_id: vehicle.id
         });
@@ -2446,7 +2446,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await db.delete(runlists).where(eq(runlists.id, runlistId));
 
       // Log the rollback activity
-      await logActivity(7, "Batch upload rolled back", {
+      await logActivity(null, "Batch upload rolled back", {
         runlist_id: runlistId,
         deleted_count: deletedCount,
         failed_count: failedCount
@@ -2728,7 +2728,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Log activity
-      await logActivity(7, "Inspection updated", {
+      await logActivity(null, "Inspection updated", {
         inspection_id: id,
         updates: req.body
       });
@@ -2784,7 +2784,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Log activity
-      await logActivity(7, "Inspection result submitted", { 
+      await logActivity(null, "Inspection result submitted", { 
         inspection_id: inspectionId,
         result_id: result.id
       });
@@ -2896,7 +2896,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         resultId = newResult.id;
         
         // Log activity
-        await logActivity(7, "Inspection result created", { 
+        await logActivity(null, "Inspection result created", { 
           inspection_id: inspectionId,
           result_id: resultId
         });
@@ -2960,7 +2960,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Log activity
-      await logActivity(7, "Files uploaded to inspection", { 
+      await logActivity(null, "Files uploaded to inspection", { 
         inspection_id: inspectionId,
         result_id: resultId || 0,
         file_count: uploadedFiles.length,
@@ -2989,6 +2989,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: "Failed to upload inspection files", 
         message: errorMessage,
         status: "error"
+      });
+    }
+  });
+
+  // Skip inspection endpoint
+  app.post("/api/inspections/:id/skip", cloudinaryUpload.single("photo"), async (req, res) => {
+    try {
+      const inspectionId = parseInt(req.params.id);
+      const { reason, note } = req.body;
+
+      console.log(`Skipping inspection ${inspectionId} - Reason: ${reason}, Note: ${note}`);
+
+      // Get inspection details
+      const inspection = await storage.getInspection(inspectionId);
+      if (!inspection) {
+        return res.status(404).json({ error: "Inspection not found" });
+      }
+
+      // Prepare skip data
+      const skipData: any = {
+        skipped: true,
+        skip_reason: reason,
+        skip_note: note,
+        skip_date: new Date().toISOString()
+      };
+
+      // If photo was uploaded, add it to skip data
+      if (req.file) {
+        const uploadedFile = req.file as any;
+        console.log(`Skip photo uploaded: ${uploadedFile.path}`);
+        skipData.skip_photo = uploadedFile.path;
+      }
+
+      // Get or create inspection result
+      let result = await storage.getInspectionResult(inspectionId);
+
+      if (!result) {
+        // Create new result with skip data
+        result = await storage.createInspectionResult({
+          inspection_id: inspectionId,
+          data: skipData,
+          score: 0,
+          notes: `Inspection skipped - ${reason}: ${note}`,
+          images: skipData.skip_photo ? [skipData.skip_photo] : []
+        });
+      } else {
+        // Update existing result with skip data
+        const updatedData = {
+          ...result.data,
+          ...skipData
+        };
+
+        await storage.updateInspectionResult(result.id, {
+          data: updatedData,
+          notes: `${result.notes || ''}\nInspection skipped - ${reason}: ${note}`,
+          images: skipData.skip_photo
+            ? [...(result.images || []), skipData.skip_photo]
+            : result.images
+        });
+      }
+
+      // Update inspection status to canceled (since skipped is a form of cancellation)
+      await storage.updateInspection(inspectionId, {
+        status: "canceled",
+        end_date: new Date().toISOString()
+      });
+
+      // Log activity
+      await logActivity(null, "Inspection skipped", {
+        inspection_id: inspectionId,
+        reason: reason,
+        note: note
+      });
+
+      res.json({
+        success: true,
+        message: "Inspection skipped successfully",
+        inspection_id: inspectionId
+      });
+    } catch (error) {
+      console.error("Error skipping inspection:", error);
+      res.status(500).json({
+        error: "Failed to skip inspection",
+        details: error instanceof Error ? error.message : "Unknown error"
       });
     }
   });
@@ -3173,7 +3257,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Log activity with system user (using inspector user_id 7 as fallback)
       try {
-        await logActivity(7, "Expired inspections cleanup", { 
+        await logActivity(null, "Expired inspections cleanup", { 
           deleted_count: deletedCount,
           cleanup_time: now.toISOString()
         });
@@ -3244,7 +3328,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Log the cleanup activity
       try {
-        await logActivity(7, "Complete inspection database cleanup with related data", { 
+        await logActivity(null, "Complete inspection database cleanup with related data", { 
           deleted_count: deletedCount,
           failed_count: failedCount,
           total_found: allInspections.length,
@@ -3309,7 +3393,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Log activity
-      await logActivity(7, "Column mapping created", { 
+      await logActivity(null, "Column mapping created", { 
         mapping_id: columnMapping.id,
         auction_id: columnMapping.auction_id,
         name: columnMapping.name
@@ -3352,7 +3436,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updatedMapping = await storage.updateColumnMapping(id, req.body);
       
       // Log activity
-      await logActivity(7, "Column mapping updated", { 
+      await logActivity(null, "Column mapping updated", { 
         mapping_id: id,
         auction_id: mapping.auction_id,
         name: mapping.name
@@ -3414,7 +3498,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const purchase = await storage.createPurchase(data);
       
       // Log activity
-      await logActivity(7, "Purchase created", { 
+      await logActivity(null, "Purchase created", { 
         purchase_id: purchase.id, 
         inspection_id: purchase.inspection_id,
         dealer_id: purchase.dealer_id,
@@ -3476,7 +3560,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updatedPurchase = await storage.updatePurchase(id, data);
       
       // Log activity
-      await logActivity(7, "Purchase updated", { 
+      await logActivity(null, "Purchase updated", { 
         purchase_id: id,
         updates: req.body
       });
@@ -3825,7 +3909,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         try {
-          await logActivity(7, "Scheduled expired inspections cleanup", { 
+          await logActivity(null, "Scheduled expired inspections cleanup", { 
             deleted_count: deletedCount,
             cleanup_time: new Date().toISOString()
           });

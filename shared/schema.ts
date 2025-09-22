@@ -331,7 +331,7 @@ export const insertColumnMappingSchema = createInsertSchema(columnMappings).omit
 // Inspector activity logs
 export const activityLogs = pgTable("activity_logs", {
   id: serial("id").primaryKey(),
-  user_id: integer("user_id").references(() => users.id).notNull(),
+  user_id: integer("user_id").references(() => users.id),
   action: text("action").notNull(),
   details: json("details"),
   timestamp: timestamp("timestamp").defaultNow().notNull(),
