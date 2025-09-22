@@ -2375,13 +2375,119 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      res.status(201).json({ 
-        message: `Created ${createdInspections.length} inspections`, 
-        count: createdInspections.length 
+      res.status(201).json({
+        message: `Created ${createdInspections.length} inspections`,
+        count: createdInspections.length,
+        runlist_id: runlist.id,
+        rollback_url: `/api/inspections/batch/${runlist.id}/rollback`
       });
     } catch (error) {
       console.error("Error creating batch inspections:", error);
       res.status(500).json({ error: "Failed to create batch inspections" });
+    }
+  });
+
+  // Rollback a batch upload by runlist ID
+  app.delete("/api/inspections/batch/:runlistId/rollback", async (req, res) => {
+    try {
+      const runlistId = parseInt(req.params.runlistId);
+
+      if (!runlistId) {
+        return res.status(400).json({ error: "Valid runlist ID is required" });
+      }
+
+      // Find all vehicles in this runlist
+      const vehiclesInRunlist = await db.select()
+        .from(vehicles)
+        .where(eq(vehicles.runlist_id, runlistId));
+
+      if (vehiclesInRunlist.length === 0) {
+        return res.status(404).json({ error: "No vehicles found for this runlist" });
+      }
+
+      const vehicleIds = vehiclesInRunlist.map(v => v.id);
+      let deletedCount = 0;
+      let failedCount = 0;
+      const deletedInspections = [];
+
+      // Delete all inspections for vehicles in this runlist
+      for (const vehicleId of vehicleIds) {
+        try {
+          const inspectionsToDelete = await db.select()
+            .from(inspections)
+            .where(eq(inspections.vehicle_id, vehicleId));
+
+          for (const inspection of inspectionsToDelete) {
+            // Delete inspection results first
+            await db.delete(inspectionResults)
+              .where(eq(inspectionResults.inspection_id, inspection.id));
+
+            // Delete the inspection
+            await db.delete(inspections)
+              .where(eq(inspections.id, inspection.id));
+
+            deletedInspections.push({
+              id: inspection.id,
+              vehicle_id: vehicleId,
+              status: inspection.status
+            });
+            deletedCount++;
+          }
+
+          // Delete the vehicle
+          await db.delete(vehicles).where(eq(vehicles.id, vehicleId));
+        } catch (error) {
+          console.error(`Failed to delete inspection for vehicle ${vehicleId}:`, error);
+          failedCount++;
+        }
+      }
+
+      // Delete the runlist
+      await db.delete(runlists).where(eq(runlists.id, runlistId));
+
+      // Log the rollback activity
+      await logActivity(7, "Batch upload rolled back", {
+        runlist_id: runlistId,
+        deleted_count: deletedCount,
+        failed_count: failedCount
+      });
+
+      res.json({
+        message: `Rollback completed: ${deletedCount} inspections and ${vehicleIds.length} vehicles removed`,
+        runlist_id: runlistId,
+        deleted_count: deletedCount,
+        failed_count: failedCount,
+        deleted_inspections
+      });
+    } catch (error) {
+      console.error("Error rolling back batch upload:", error);
+      res.status(500).json({ error: "Failed to rollback batch upload" });
+    }
+  });
+
+  // Get recent batch uploads (runlists) for potential rollback
+  app.get("/api/inspections/batches/recent", async (req, res) => {
+    try {
+      const recentBatches = await db.select({
+        id: runlists.id,
+        filename: runlists.filename,
+        upload_date: runlists.upload_date,
+        auction_id: runlists.auction_id,
+        vehicle_count: sql<number>`COUNT(${vehicles.id})`.as('vehicle_count'),
+        inspection_count: sql<number>`COUNT(${inspections.id})`.as('inspection_count')
+      })
+        .from(runlists)
+        .leftJoin(vehicles, eq(vehicles.runlist_id, runlists.id))
+        .leftJoin(inspections, eq(inspections.vehicle_id, vehicles.id))
+        .where(sql`${runlists.filename} LIKE 'Manual Batch Upload%'`)
+        .groupBy(runlists.id, runlists.filename, runlists.upload_date, runlists.auction_id)
+        .orderBy(sql`${runlists.upload_date} DESC`)
+        .limit(10);
+
+      res.json(recentBatches);
+    } catch (error) {
+      console.error("Error fetching recent batches:", error);
+      res.status(500).json({ error: "Failed to fetch recent batches" });
     }
   });
 
