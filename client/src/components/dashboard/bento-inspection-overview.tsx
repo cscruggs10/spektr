@@ -31,7 +31,7 @@ interface Inspection {
 
 export default function BentoInspectionOverview() {
   const { data: inspections, isLoading } = useQuery<Inspection[]>({
-    queryKey: ["/api/inspections/recent"],
+    queryKey: ["/api/inspections"],
   });
 
   // Mock data for demo purposes

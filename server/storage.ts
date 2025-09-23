@@ -1001,14 +1001,14 @@ export class DatabaseStorage implements IStorage {
 
     // Calculate average completion time in minutes
     const completionTimesResult = await db.select({
-      avgMinutes: sql<number>`AVG(EXTRACT(EPOCH FROM (end_date - start_date)) / 60)`
+      avgMinutes: sql<number>`AVG(EXTRACT(EPOCH FROM (completion_date - start_date)) / 60)`
     })
       .from(inspections)
       .where(
         and(
           eq(inspections.status, "completed"),
           isNotNull(inspections.start_date),
-          isNotNull(inspections.end_date)
+          isNotNull(inspections.completion_date)
         )
       );
 
