@@ -47,6 +47,7 @@ export default function InspectorPortal() {
 
   // Inspection form data
   const [moduleScanLink, setModuleScanLink] = useState<string>("");
+  const [isUploadingPDF, setIsUploadingPDF] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const [voiceNote, setVoiceNote] = useState<Blob | null>(null);
@@ -1060,16 +1061,80 @@ export default function InspectorPortal() {
                 <div className="space-y-3">
                   <h4 className="font-medium">Full Module Scan</h4>
                   <div className="space-y-2">
-                    <Label htmlFor="module-scan-link">Module Scan Report Link</Label>
-                    <input
-                      id="module-scan-link"
-                      type="url"
-                      placeholder="Paste link to module scan report..."
-                      value={moduleScanLink}
-                      onChange={(e) => setModuleScanLink(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                    />
-                    {moduleScanLink && (
+                    <Label htmlFor="module-scan-link">Module Scan Report</Label>
+                    <div className="flex gap-2">
+                      <input
+                        id="module-scan-link"
+                        type="url"
+                        placeholder="Paste URL or click Upload PDF button"
+                        value={moduleScanLink}
+                        onChange={(e) => setModuleScanLink(e.target.value)}
+                        disabled={isUploadingPDF}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md disabled:opacity-50"
+                      />
+                      <input
+                        type="file"
+                        accept=".pdf,application/pdf"
+                        id="inspector-module-scan-upload"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setIsUploadingPDF(true);
+                            setModuleScanLink('Uploading PDF...');
+
+                            try {
+                              const formData = new FormData();
+                              formData.append("files", file);
+
+                              const res = await apiRequest("POST", `/api/inspections/${selectedInspection.id}/uploads`, formData);
+                              const data = await res.json();
+
+                              if (data.files && data.files.length > 0) {
+                                const uploadedUrl = data.files[0].url;
+                                setModuleScanLink(uploadedUrl);
+
+                                toast({
+                                  title: "PDF Uploaded",
+                                  description: "Module scan PDF has been uploaded successfully",
+                                });
+                              }
+                            } catch (error) {
+                              console.error('Error uploading PDF:', error);
+                              setModuleScanLink('');
+                              toast({
+                                title: "Upload Failed",
+                                description: "Failed to upload the PDF file. Please try again.",
+                                variant: "destructive",
+                              });
+                            } finally {
+                              setIsUploadingPDF(false);
+                              // Reset file input
+                              e.target.value = '';
+                            }
+                          }
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => document.getElementById('inspector-module-scan-upload')?.click()}
+                        disabled={isUploadingPDF}
+                        className="whitespace-nowrap"
+                      >
+                        <i className="fas fa-upload mr-2"></i>
+                        Upload PDF
+                      </Button>
+                    </div>
+
+                    {isUploadingPDF && (
+                      <div className="flex items-center p-3 bg-blue-50 border border-blue-200 rounded-md">
+                        <Loader2 className="animate-spin h-4 w-4 mr-2 text-blue-600" />
+                        <p className="text-sm font-medium text-blue-800">Uploading PDF...</p>
+                      </div>
+                    )}
+
+                    {moduleScanLink && !moduleScanLink.includes('Uploading') && !moduleScanLink.includes('Please use') && (
                       <div className="mt-2">
                         <a
                           href={moduleScanLink}
