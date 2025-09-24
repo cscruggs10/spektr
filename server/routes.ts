@@ -186,6 +186,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update a user
+  app.patch("/api/users/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const user = await storage.getUser(id);
+
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const updatedUser = await storage.updateUser(id, req.body);
+
+      // Log activity
+      await logActivity(null, "User updated", {
+        user_id: id,
+        updates: req.body
+      });
+
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating user:", error);
+      res.status(500).json({ error: "Failed to update user" });
+    }
+  });
+
   // ------------------------
   // Dashboard routes
   // ------------------------

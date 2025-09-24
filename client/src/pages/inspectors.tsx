@@ -32,12 +32,15 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { X } from "lucide-react";
 import { Inspector } from "@/lib/types";
 import AddInspectorModal from "@/components/modals/add-inspector-modal";
+import EditInspectorModal from "@/components/modals/edit-inspector-modal";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Inspectors() {
   const [isAddInspectorModalOpen, setIsAddInspectorModalOpen] = useState(false);
+  const [isEditInspectorModalOpen, setIsEditInspectorModalOpen] = useState(false);
   const [selectedInspectorId, setSelectedInspectorId] = useState<number | null>(null);
+  const [selectedInspectorForEdit, setSelectedInspectorForEdit] = useState<Inspector | null>(null);
   const [isAuctionDialogOpen, setIsAuctionDialogOpen] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -113,6 +116,11 @@ export default function Inspectors() {
   const handleManageAuctions = (inspectorId: number) => {
     setSelectedInspectorId(inspectorId);
     setIsAuctionDialogOpen(true);
+  };
+
+  const handleEditInspector = (inspector: Inspector) => {
+    setSelectedInspectorForEdit(inspector);
+    setIsEditInspectorModalOpen(true);
   };
 
   const handleAssignAuction = (auctionId: number) => {
@@ -222,8 +230,16 @@ export default function Inspectors() {
                             </TableCell>
                             <TableCell>
                               <div className="flex space-x-2">
-                                <Button 
-                                  variant="outline" 
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleEditInspector(inspector)}
+                                >
+                                  <i className="fas fa-edit mr-2"></i>
+                                  Edit
+                                </Button>
+                                <Button
+                                  variant="outline"
                                   size="sm"
                                   onClick={() => handleManageAuctions(inspector.id)}
                                 >
@@ -249,9 +265,18 @@ export default function Inspectors() {
         </div>
       </div>
 
-      <AddInspectorModal 
-        isOpen={isAddInspectorModalOpen} 
-        onClose={() => setIsAddInspectorModalOpen(false)} 
+      <AddInspectorModal
+        isOpen={isAddInspectorModalOpen}
+        onClose={() => setIsAddInspectorModalOpen(false)}
+      />
+
+      <EditInspectorModal
+        isOpen={isEditInspectorModalOpen}
+        onClose={() => {
+          setIsEditInspectorModalOpen(false);
+          setSelectedInspectorForEdit(null);
+        }}
+        inspector={selectedInspectorForEdit}
       />
 
       {/* Auction Management Dialog */}
