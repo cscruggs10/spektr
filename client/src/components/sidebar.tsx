@@ -22,10 +22,15 @@ export default function Sidebar() {
     { href: "/inspectors", label: "Inspectors", icon: "fas fa-users", gradient: "from-cyan-500 to-blue-600" },
   ];
 
-  // Special access portal
+  // Special access portal & admin
   const portalLinks = [
     { href: "/inspector", label: "Inspector Portal", icon: "fas fa-user-shield", gradient: "from-indigo-500 to-purple-600" },
   ];
+
+  // Admin links (only show for admin users)
+  const adminLinks = userEmail === "corey@ifinancememphis.com" ? [
+    { href: "/access-management", label: "Access Management", icon: "fas fa-shield-alt", gradient: "from-purple-500 to-pink-600" },
+  ] : [];
 
   return (
     <div className="w-64 flex-shrink-0 hidden md:block bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 border-r border-gray-700/50">
@@ -168,6 +173,52 @@ export default function Sidebar() {
             </motion.div>
           );
         })}
+
+        {/* Admin Section - Only show for admin users */}
+        {adminLinks.length > 0 && (
+          <>
+            <div className="px-3 mt-8 mb-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Admin</p>
+            </div>
+            {adminLinks.map((link, index) => {
+              const isActive = location === link.href;
+              return (
+                <motion.div
+                  key={link.href}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: (operationsLinks.length + managementLinks.length + portalLinks.length + index) * 0.1 }}
+                >
+                  <Link href={link.href}>
+                    <div className={cn(
+                      "group flex items-center px-3 py-2.5 mb-1 rounded-xl cursor-pointer transition-all duration-200",
+                      isActive
+                        ? "bg-gradient-to-r " + link.gradient + " text-white shadow-lg"
+                        : "text-gray-400 hover:text-white hover:bg-gray-700/50"
+                    )}>
+                      <div className={cn(
+                        "w-8 h-8 rounded-lg flex items-center justify-center mr-3 transition-all",
+                        isActive
+                          ? "bg-white/20"
+                          : "bg-gray-700/50 group-hover:bg-gradient-to-r group-hover:" + link.gradient
+                      )}>
+                        <i className={`${link.icon} text-sm ${!isActive && "group-hover:text-white"}`}></i>
+                      </div>
+                      <span className="font-medium text-sm">{link.label}</span>
+                      {isActive && (
+                        <motion.div
+                          className="ml-auto w-1.5 h-1.5 bg-white rounded-full"
+                          animate={{ scale: [1, 1.2, 1] }}
+                          transition={{ repeat: Infinity, duration: 2 }}
+                        />
+                      )}
+                    </div>
+                  </Link>
+                </motion.div>
+              );
+            })}
+          </>
+        )}
 
         {/* User section */}
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-700/50">

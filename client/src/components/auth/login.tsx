@@ -3,18 +3,11 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { AUTHORIZED_EMAILS, isEmailAuthorized } from "@/config/authorized-emails";
 
 interface LoginProps {
   onLogin: (email: string) => void;
 }
-
-const AUTHORIZED_EMAILS = [
-  "corey@ifinancememphis.com",
-  "sam@ifinancememphis.com",
-  "jon@ifinancememphis.com",
-  "kyle@ifinancememphis.com",
-  "alimigdadi@icloud.com"
-];
 
 export default function Login({ onLogin }: LoginProps) {
   const [email, setEmail] = useState("");
@@ -36,7 +29,7 @@ export default function Login({ onLogin }: LoginProps) {
       return;
     }
 
-    if (!AUTHORIZED_EMAILS.includes(email.toLowerCase())) {
+    if (!isEmailAuthorized(email)) {
       toast({
         title: "Unauthorized access",
         description: "This email is not authorized to access the dashboard",

@@ -138,26 +138,41 @@ const InspectionResultView = ({ inspectionResult }: { inspectionResult: any }) =
         <h3 className="text-lg font-medium">Module Scan Links</h3>
         {inspectionResult.links && inspectionResult.links.length > 0 ? (
           <div className="space-y-3">
-            {inspectionResult.links.map((link: any, index: number) => (
-              <div key={index} className="border rounded-lg p-4 bg-purple-50">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-sm">{link.label || "Module Scan Report"}</p>
-                    <p className="text-xs text-gray-500">
-                      {link.created_at ? `Added: ${new Date(link.created_at).toLocaleDateString()}` : "Module scan diagnostic report"}
-                    </p>
+            {inspectionResult.links.map((link: any, index: number) => {
+              const isValidUrl = link.url && !link.url.startsWith('file://') && (link.url.startsWith('http://') || link.url.startsWith('https://'));
+              return (
+                <div key={index} className="border rounded-lg p-4 bg-purple-50">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-sm">{link.label || "Module Scan Report"}</p>
+                      <p className="text-xs text-gray-500">
+                        {link.created_at ? `Added: ${new Date(link.created_at).toLocaleDateString()}` : "Module scan diagnostic report"}
+                      </p>
+                      {!isValidUrl && (
+                        <p className="text-xs text-amber-600 mt-1">
+                          ⚠️ Local file - upload to cloud storage to share
+                        </p>
+                      )}
+                    </div>
+                    {isValidUrl ? (
+                      <a
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-4 py-2 bg-purple-600 text-white rounded text-sm hover:bg-purple-700 flex items-center"
+                      >
+                        📊 View Report
+                      </a>
+                    ) : (
+                      <div className="text-xs text-gray-500 text-center">
+                        <p className="font-medium">Local File</p>
+                        <p className="truncate max-w-xs">{link.url}</p>
+                      </div>
+                    )}
                   </div>
-                  <a
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-4 py-2 bg-purple-600 text-white rounded text-sm hover:bg-purple-700 flex items-center"
-                  >
-                    📊 View Report
-                  </a>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : inspectionResult.data?.module_scan_link ? (
           <div className="border rounded-lg p-4 bg-purple-50">
@@ -165,15 +180,27 @@ const InspectionResultView = ({ inspectionResult }: { inspectionResult: any }) =
               <div>
                 <p className="font-medium text-sm">Module Scan Report</p>
                 <p className="text-xs text-gray-500">Module scan diagnostic report</p>
+                {inspectionResult.data.module_scan_link.startsWith('file://') && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    ⚠️ Local file - upload to cloud storage to share
+                  </p>
+                )}
               </div>
-              <a
-                href={inspectionResult.data.module_scan_link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-4 py-2 bg-purple-600 text-white rounded text-sm hover:bg-purple-700 flex items-center"
-              >
-                📊 View Report
-              </a>
+              {inspectionResult.data.module_scan_link.startsWith('http://') || inspectionResult.data.module_scan_link.startsWith('https://') ? (
+                <a
+                  href={inspectionResult.data.module_scan_link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2 bg-purple-600 text-white rounded text-sm hover:bg-purple-700 flex items-center"
+                >
+                  📊 View Report
+                </a>
+              ) : (
+                <div className="text-xs text-gray-500 text-center">
+                  <p className="font-medium">Local File</p>
+                  <p className="truncate max-w-xs">{inspectionResult.data.module_scan_link}</p>
+                </div>
+              )}
             </div>
           </div>
         ) : (
@@ -1472,12 +1499,27 @@ export default function InspectionDetail() {
                                         <div>
                                           <p className="text-sm font-medium text-green-800">Report Link Added</p>
                                           <p className="text-xs text-green-600 truncate max-w-xs">{moduleScanLink}</p>
+                                          {moduleScanLink.startsWith('file://') && (
+                                            <p className="text-xs text-amber-600 mt-1">
+                                              ⚠️ Local file - upload to cloud storage to share
+                                            </p>
+                                          )}
                                         </div>
                                         <Button
                                           type="button"
                                           variant="outline"
                                           size="sm"
-                                          onClick={() => window.open(moduleScanLink, '_blank')}
+                                          onClick={() => {
+                                            if (moduleScanLink.startsWith('file://')) {
+                                              toast({
+                                                title: "Cannot open local file",
+                                                description: "Upload the file to cloud storage to share with others",
+                                                variant: "destructive",
+                                              });
+                                            } else {
+                                              window.open(moduleScanLink, '_blank');
+                                            }
+                                          }}
                                         >
                                           View Report
                                         </Button>

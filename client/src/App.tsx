@@ -26,6 +26,7 @@ import CompletedInspections from "@/pages/completed-inspections";
 import TestUpload from "@/pages/test-upload";
 import UploadTest from "@/pages/upload-test";
 import SimpleDashboard from "@/pages/simple-dashboard";
+import AccessManagement from "@/pages/access-management";
 
 // Protected Route Component
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -130,6 +131,11 @@ function Router() {
       <Route path="/vehicle-tools" component={() => (
         <ProtectedRoute>
           <Layout><VehicleTools /></Layout>
+        </ProtectedRoute>
+      )} />
+      <Route path="/access-management" component={() => (
+        <ProtectedRoute>
+          <Layout><AccessManagement /></Layout>
         </ProtectedRoute>
       )} />
       <Route path="/test-upload" component={() => (
