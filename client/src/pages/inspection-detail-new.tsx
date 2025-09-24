@@ -735,26 +735,57 @@ export default function InspectionDetail() {
 
   // Smart paste handler for module scan PDFs
   const handleModuleScanPaste = async (e: React.ClipboardEvent<HTMLInputElement>) => {
+    console.log('Paste event triggered');
+
     const pastedText = e.clipboardData.getData('text');
+    console.log('Pasted text:', pastedText);
+
+    // Log all available clipboard data types
+    const types = e.clipboardData.types;
+    console.log('Clipboard data types:', types);
+
+    // Try to get file data
+    const files = e.clipboardData.files;
+    console.log('Files in clipboard:', files?.length || 0);
+
+    if (files && files.length > 0) {
+      console.log('File details:', {
+        name: files[0].name,
+        type: files[0].type,
+        size: files[0].size
+      });
+    }
 
     // Check if it's a local file path
     const isLocalPath = pastedText.startsWith('file://') ||
                        pastedText.startsWith('/Users/') ||
                        pastedText.startsWith('/var/') ||
                        pastedText.includes('/Library/') ||
-                       pastedText.includes('/Messages/Attachments/');
+                       pastedText.includes('/Messages/Attachments/') ||
+                       pastedText.toLowerCase().endsWith('.pdf');
+
+    console.log('Is local path:', isLocalPath);
 
     if (isLocalPath) {
-      // Check if there are files in the clipboard
-      const files = e.clipboardData.files;
+      // Since browsers can't access local files from clipboard when pasting paths,
+      // we'll provide a file upload button as fallback
+      e.preventDefault(); // Prevent the local path from being pasted
 
+      toast({
+        title: "Local PDF Detected",
+        description: "Use the upload button to select and upload your PDF file",
+        variant: "default",
+      });
+
+      // Set a temporary message
+      setModuleScanLink('Please use the upload button below to select your PDF file');
+
+      // Check if there are actual files in clipboard (rare but possible)
       if (files && files.length > 0) {
         const file = files[0];
 
         // Check if it's a PDF
         if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
-          e.preventDefault(); // Prevent the path from being pasted
-
           setIsUploadingPDF(true);
           setModuleScanLink('Uploading PDF...');
 
@@ -786,21 +817,7 @@ export default function InspectionDetail() {
           } finally {
             setIsUploadingPDF(false);
           }
-        } else {
-          // Not a PDF, but still a local path - show warning
-          toast({
-            title: "Local File Detected",
-            description: "Please upload the PDF file to cloud storage first",
-            variant: "destructive",
-          });
         }
-      } else {
-        // No file data available, just a path - show helpful message
-        toast({
-          title: "Cannot Access Local File",
-          description: "Try copying the PDF file itself instead of just the path",
-          variant: "destructive",
-        });
       }
     }
     // If it's a web URL, let it paste normally
@@ -1541,33 +1558,85 @@ export default function InspectionDetail() {
 
                               <div className="space-y-4">
                                 <div className="p-4 border rounded-lg bg-white">
-                                  <label className="block text-sm font-medium mb-2">Module Scan Report Link</label>
+                                  <label className="block text-sm font-medium mb-2">Module Scan Report</label>
                                   <div className="space-y-3">
-                                    <Input
-                                      type="url"
-                                      placeholder="Paste module scan PDF or URL"
-                                      value={moduleScanLink}
-                                      onChange={(e) => setModuleScanLink(e.target.value)}
-                                      onPaste={handleModuleScanPaste}
-                                      disabled={isUploadingPDF}
-                                      className="w-full"
-                                    />
+                                    <div className="flex gap-2">
+                                      <Input
+                                        type="url"
+                                        placeholder="Paste URL or use upload button for PDF"
+                                        value={moduleScanLink}
+                                        onChange={(e) => setModuleScanLink(e.target.value)}
+                                        onPaste={handleModuleScanPaste}
+                                        disabled={isUploadingPDF}
+                                        className="flex-1"
+                                      />
+                                      <input
+                                        type="file"
+                                        accept=".pdf,application/pdf"
+                                        id="module-scan-upload"
+                                        className="hidden"
+                                        onChange={async (e) => {
+                                          const file = e.target.files?.[0];
+                                          if (file) {
+                                            setIsUploadingPDF(true);
+                                            setModuleScanLink('Uploading PDF...');
+
+                                            try {
+                                              const formData = new FormData();
+                                              formData.append("files", file);
+
+                                              const res = await apiRequest("POST", `/api/inspections/${id}/uploads`, formData);
+                                              const data = await res.json();
+
+                                              if (data.files && data.files.length > 0) {
+                                                const uploadedUrl = data.files[0].url;
+                                                setModuleScanLink(uploadedUrl);
+
+                                                toast({
+                                                  title: "PDF Uploaded",
+                                                  description: "Module scan PDF has been uploaded successfully",
+                                                });
+                                              }
+                                            } catch (error) {
+                                              console.error('Error uploading PDF:', error);
+                                              setModuleScanLink('');
+                                              toast({
+                                                title: "Upload Failed",
+                                                description: "Failed to upload the PDF file. Please try again.",
+                                                variant: "destructive",
+                                              });
+                                            } finally {
+                                              setIsUploadingPDF(false);
+                                              // Reset file input
+                                              e.target.value = '';
+                                            }
+                                          }
+                                        }}
+                                      />
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => document.getElementById('module-scan-upload')?.click()}
+                                        disabled={isUploadingPDF}
+                                        className="whitespace-nowrap"
+                                      >
+                                        <i className="fas fa-upload mr-2"></i>
+                                        Upload PDF
+                                      </Button>
+                                    </div>
+
                                     {isUploadingPDF && (
                                       <div className="flex items-center p-3 bg-blue-50 border border-blue-200 rounded-md">
                                         <Loader2 className="animate-spin h-4 w-4 mr-2 text-blue-600" />
                                         <p className="text-sm font-medium text-blue-800">Uploading PDF...</p>
                                       </div>
                                     )}
-                                    {!isUploadingPDF && moduleScanLink && moduleScanLink !== 'Uploading PDF...' && (
+
+                                    {!isUploadingPDF && moduleScanLink && !moduleScanLink.includes('Please use') && moduleScanLink !== 'Uploading PDF...' && (
                                       <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-md">
                                         <div>
                                           <p className="text-sm font-medium text-green-800">Report Link Added</p>
                                           <p className="text-xs text-green-600 truncate max-w-xs">{moduleScanLink}</p>
-                                          {moduleScanLink.startsWith('file://') && (
-                                            <p className="text-xs text-amber-600 mt-1">
-                                              ⚠️ Local file - upload to cloud storage to share
-                                            </p>
-                                          )}
                                         </div>
                                         <Button
                                           type="button"
