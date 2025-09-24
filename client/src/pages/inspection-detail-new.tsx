@@ -154,21 +154,12 @@ const InspectionResultView = ({ inspectionResult }: { inspectionResult: any }) =
                         </p>
                       )}
                     </div>
-                    {isValidUrl ? (
-                      <a
-                        href={link.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-4 py-2 bg-purple-600 text-white rounded text-sm hover:bg-purple-700 flex items-center"
-                      >
-                        📊 View Report
-                      </a>
-                    ) : (
-                      <div className="text-xs text-gray-500 text-center">
-                        <p className="font-medium">Local File</p>
-                        <p className="truncate max-w-xs">{link.url}</p>
-                      </div>
-                    )}
+                    <button
+                      onClick={() => window.open(link.url, '_blank')}
+                      className="px-4 py-2 bg-purple-600 text-white rounded text-sm hover:bg-purple-700 flex items-center"
+                    >
+                      📊 View Report
+                    </button>
                   </div>
                 </div>
               );
@@ -186,21 +177,12 @@ const InspectionResultView = ({ inspectionResult }: { inspectionResult: any }) =
                   </p>
                 )}
               </div>
-              {inspectionResult.data.module_scan_link.startsWith('http://') || inspectionResult.data.module_scan_link.startsWith('https://') ? (
-                <a
-                  href={inspectionResult.data.module_scan_link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-4 py-2 bg-purple-600 text-white rounded text-sm hover:bg-purple-700 flex items-center"
-                >
-                  📊 View Report
-                </a>
-              ) : (
-                <div className="text-xs text-gray-500 text-center">
-                  <p className="font-medium">Local File</p>
-                  <p className="truncate max-w-xs">{inspectionResult.data.module_scan_link}</p>
-                </div>
-              )}
+              <button
+                onClick={() => window.open(inspectionResult.data.module_scan_link, '_blank')}
+                className="px-4 py-2 bg-purple-600 text-white rounded text-sm hover:bg-purple-700 flex items-center"
+              >
+                📊 View Report
+              </button>
             </div>
           </div>
         ) : (
@@ -1509,17 +1491,7 @@ export default function InspectionDetail() {
                                           type="button"
                                           variant="outline"
                                           size="sm"
-                                          onClick={() => {
-                                            if (moduleScanLink.startsWith('file://')) {
-                                              toast({
-                                                title: "Cannot open local file",
-                                                description: "Upload the file to cloud storage to share with others",
-                                                variant: "destructive",
-                                              });
-                                            } else {
-                                              window.open(moduleScanLink, '_blank');
-                                            }
-                                          }}
+                                          onClick={() => window.open(moduleScanLink, '_blank')}
                                         >
                                           View Report
                                         </Button>
