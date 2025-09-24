@@ -1563,7 +1563,7 @@ export default function InspectionDetail() {
                                     <div className="flex gap-2">
                                       <Input
                                         type="url"
-                                        placeholder="Paste URL or use upload button for PDF"
+                                        placeholder="Paste URL or click Upload PDF button"
                                         value={moduleScanLink}
                                         onChange={(e) => setModuleScanLink(e.target.value)}
                                         onPaste={handleModuleScanPaste}
