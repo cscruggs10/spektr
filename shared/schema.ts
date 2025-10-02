@@ -237,6 +237,7 @@ export const inspections = pgTable("inspections", {
   template_id: integer("template_id").references(() => inspectionTemplates.id), // Made optional
   status: inspectionStatusEnum("status").notNull().default("pending"),
   scheduled_date: timestamp("scheduled_date"),
+  auction_start_date: timestamp("auction_start_date"), // Date the auction runs
   start_date: timestamp("start_date"),
   completion_date: timestamp("completion_date"),
   notes: text("notes"),
@@ -246,6 +247,7 @@ export const inspections = pgTable("inspections", {
   mechanical_details: text("mechanical_details"),
   voice_note_url: text("voice_note_url"),
   is_recommended: boolean("is_recommended").default(false),
+  reviewed: boolean("reviewed").default(false),
   created_at: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -259,6 +261,7 @@ const baseInspectionSchema = createInsertSchema(inspections).omit({
 export const insertInspectionSchema = baseInspectionSchema.extend({
   // Allow date fields to accept ISO strings that will be converted to dates
   scheduled_date: z.string().datetime().optional().or(z.date().optional()),
+  auction_start_date: z.string().datetime().optional().or(z.date().optional()),
   start_date: z.string().datetime().optional().or(z.date().optional()),
   completion_date: z.string().datetime().optional().or(z.date().optional()),
 });

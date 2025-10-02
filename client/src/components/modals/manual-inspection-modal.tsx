@@ -42,6 +42,7 @@ const manualInspectionSchema = z.object({
   lane_number: z.string().min(1, "Lane number is required"),
   run_number: z.string().min(1, "Run number is required"),
   inspection_date: z.string().min(1, "Inspection date is required"),
+  auction_start_date: z.string().min(1, "Auction start date is required"),
   notes: z.string().optional(),
 });
 
@@ -69,6 +70,7 @@ export default function ManualInspectionModal({
       lane_number: "",
       run_number: "",
       inspection_date: new Date().toISOString().split('T')[0], // Today as default
+      auction_start_date: new Date().toISOString().split('T')[0], // Today as default
       notes: "",
     },
   });
@@ -114,6 +116,7 @@ export default function ManualInspectionModal({
         notes: data.notes || null,
         status: "pending",
         scheduled_date: data.inspection_date ? new Date(data.inspection_date).toISOString() : null, // Convert to ISO string
+        auction_start_date: data.auction_start_date ? new Date(data.auction_start_date).toISOString() : null, // Convert to ISO string
         // No template_id needed with our simplified approach
       };
 
@@ -288,9 +291,27 @@ export default function ManualInspectionModal({
                   <FormItem>
                     <FormLabel>Inspection Date</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="date" 
-                        {...field} 
+                      <Input
+                        type="date"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Auction Start Date */}
+              <FormField
+                control={form.control}
+                name="auction_start_date"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Auction Start Date</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="date"
+                        {...field}
                       />
                     </FormControl>
                     <FormMessage />

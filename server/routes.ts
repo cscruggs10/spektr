@@ -2226,26 +2226,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/inspections", async (req, res) => {
     try {
       const validation = insertInspectionSchema.safeParse(req.body);
-      
+
       if (!validation.success) {
         return handleZodError(validation.error, res);
       }
-      
-      // Convert scheduled_date string to Date object if it exists
+
+      // Convert date strings to Date objects if they exist
       const inspectionData = {
         ...validation.data,
-        scheduled_date: validation.data.scheduled_date ? new Date(validation.data.scheduled_date) : null
+        scheduled_date: validation.data.scheduled_date ? new Date(validation.data.scheduled_date) : null,
+        auction_start_date: validation.data.auction_start_date ? new Date(validation.data.auction_start_date) : null
       };
-      
+
       const inspection = await storage.createInspection(inspectionData);
-      
+
       // Log activity
-      await logActivity(null, "Inspection created", { 
-        inspection_id: inspection.id, 
+      await logActivity(null, "Inspection created", {
+        inspection_id: inspection.id,
         vehicle_id: inspection.vehicle_id,
         dealer_id: inspection.dealer_id
       });
-      
+
       res.status(201).json(inspection);
     } catch (error) {
       console.error("Error creating inspection:", error);
@@ -2369,27 +2370,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         // 3. Create inspection (no templates needed)
-        
+
         // dealer_id is optional, set to null if not provided
-        
+
         // Process the scheduled date
         let processedScheduledDate = null;
         if (scheduled_date) {
-          processedScheduledDate = typeof scheduled_date === 'string' 
-            ? new Date(scheduled_date) 
+          processedScheduledDate = typeof scheduled_date === 'string'
+            ? new Date(scheduled_date)
             : scheduled_date;
         }
-        
+
+        // Process the auction start date
+        let processedAuctionStartDate = null;
+        if (item.auction_start_date) {
+          processedAuctionStartDate = typeof item.auction_start_date === 'string'
+            ? new Date(item.auction_start_date)
+            : item.auction_start_date;
+        }
+
         const inspectionData = {
           vehicle_id: vehicle.id,
           dealer_id: dealer_id,
           inspector_id: inspector_id || null,
           template_id: null, // No templates needed
           scheduled_date: processedScheduledDate,
+          auction_start_date: processedAuctionStartDate,
           status: "pending" as const,
           notes: notes || "Created via batch upload",
         };
-        
+
         const inspection = await storage.createInspection(inspectionData);
         createdInspections.push(inspection);
         
@@ -4097,7 +4107,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to complete inspection" });
     }
   });
-  
+
+  // Toggle inspection reviewed status
+  app.patch("/api/inspections/:id/review", async (req, res) => {
+    try {
+      const inspectionId = parseInt(req.params.id);
+      const inspection = await storage.getInspection(inspectionId);
+
+      if (!inspection) {
+        return res.status(404).json({ error: "Inspection not found" });
+      }
+
+      // Toggle the reviewed status
+      const newReviewedStatus = !inspection.reviewed;
+
+      const updatedInspection = await storage.updateInspection(inspectionId, {
+        reviewed: newReviewedStatus
+      });
+
+      res.status(200).json(updatedInspection);
+    } catch (error) {
+      console.error("Error toggling inspection review status:", error);
+      res.status(500).json({ error: "Failed to update review status" });
+    }
+  });
+
   // Share inspection report
   app.post("/api/inspections/:id/share", async (req, res) => {
     try {

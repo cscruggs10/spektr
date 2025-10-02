@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,18 +7,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, Eye, Calendar, User, Car, FileCheck, DollarSign, Search, Filter, Star } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Loader2, Eye, Calendar, User, Car, FileCheck, DollarSign, Search, Filter, Star, Package } from "lucide-react";
 import { format, subDays, isAfter } from "date-fns";
 import { useState, useMemo } from "react";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 export default function CompletedInspections() {
   const [, navigate] = useLocation();
+  const { toast } = useToast();
   const [vinSearch, setVinSearch] = useState("");
   const [selectedInspectorId, setSelectedInspectorId] = useState<string>("all");
   const [selectedDays, setSelectedDays] = useState<string>("all");
   const [selectedAuctionId, setSelectedAuctionId] = useState<string>("all");
   const [laneSearch, setLaneSearch] = useState("");
   const [runSearch, setRunSearch] = useState("");
+  const [reviewedFilter, setReviewedFilter] = useState<string>("all"); // all, reviewed, unreviewed
 
   const { data: allInspections, isLoading } = useQuery({
     queryKey: ["/api/inspections?status=completed"],
@@ -90,19 +95,105 @@ export default function CompletedInspections() {
         return completionDate && isAfter(completionDate, cutoffDate);
       });
     }
-    
+
+    // Filter by reviewed status
+    if (reviewedFilter !== "all") {
+      filtered = filtered.filter((inspection: any) => {
+        if (reviewedFilter === "reviewed") {
+          return inspection.reviewed === true;
+        } else if (reviewedFilter === "unreviewed") {
+          return !inspection.reviewed;
+        }
+        return true;
+      });
+    }
+
     // Sort by completion date (newest first) and then by recommendation
     return filtered.sort((a: any, b: any) => {
       // First sort by recommendation status
       if (a.is_recommended && !b.is_recommended) return -1;
       if (!a.is_recommended && b.is_recommended) return 1;
-      
+
       // Then sort by completion date
       const dateA = new Date(a.completion_date || 0);
       const dateB = new Date(b.completion_date || 0);
       return dateB.getTime() - dateA.getTime();
     });
-  }, [allInspections, vinSearch, selectedInspectorId, selectedAuctionId, selectedDays, laneSearch, runSearch]);
+  }, [allInspections, vinSearch, selectedInspectorId, selectedAuctionId, selectedDays, laneSearch, runSearch, reviewedFilter]);
+
+  // Group inspections into packages by auction_id + auction_start_date
+  const inspectionPackages = useMemo(() => {
+    if (!inspections || inspections.length === 0) return [];
+
+    const packagesMap = new Map<string, any>();
+
+    inspections.forEach((inspection: any) => {
+      const auctionId = inspection.vehicle?.runlist?.auction_id;
+      const auctionStartDate = inspection.auction_start_date;
+
+      if (!auctionId || !auctionStartDate) return; // Skip if missing required data
+
+      // Create a unique key for this package
+      const packageKey = `${auctionId}-${auctionStartDate}`;
+
+      if (!packagesMap.has(packageKey)) {
+        const auction = auctions?.find((a: any) => a.id === auctionId);
+        packagesMap.set(packageKey, {
+          packageKey,
+          auctionId,
+          auctionStartDate,
+          auctionName: auction?.name || "Unknown Auction",
+          auctionLocation: auction?.location || "",
+          inspections: [],
+        });
+      }
+
+      packagesMap.get(packageKey).inspections.push(inspection);
+    });
+
+    // Convert map to array and sort inspections within each package
+    return Array.from(packagesMap.values()).map(pkg => ({
+      ...pkg,
+      inspections: pkg.inspections.sort((a: any, b: any) => {
+        // Sort by lane number first, then run number
+        const laneA = a.vehicle?.lane_number || "";
+        const laneB = b.vehicle?.lane_number || "";
+        const runA = a.vehicle?.run_number || "";
+        const runB = b.vehicle?.run_number || "";
+
+        if (laneA !== laneB) {
+          return laneA.localeCompare(laneB, undefined, { numeric: true });
+        }
+        return runA.localeCompare(runB, undefined, { numeric: true });
+      }),
+      totalCount: pkg.inspections.length,
+      reviewedCount: pkg.inspections.filter((i: any) => i.reviewed).length,
+    })).sort((a, b) => {
+      // Sort packages by auction_start_date (newest first)
+      return new Date(b.auctionStartDate).getTime() - new Date(a.auctionStartDate).getTime();
+    });
+  }, [inspections, auctions]);
+
+  // Toggle review status mutation
+  const toggleReviewMutation = useMutation({
+    mutationFn: async (inspectionId: number) => {
+      const response = await apiRequest("PATCH", `/api/inspections/${inspectionId}/review`, {});
+      if (!response.ok) {
+        throw new Error("Failed to update review status");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/inspections?status=completed"] });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update review status",
+        variant: "destructive",
+      });
+    },
+  });
 
   if (isLoading) {
     return (
@@ -136,7 +227,7 @@ export default function CompletedInspections() {
         {/* Filters Section */}
         <Card className="mb-6">
           <CardContent className="pt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-8 gap-4">
               {/* VIN Search */}
               <div className="lg:col-span-2">
                 <Label htmlFor="vin-search" className="text-sm font-medium">
@@ -243,10 +334,27 @@ export default function CompletedInspections() {
                   className="mt-1"
                 />
               </div>
+
+              {/* Review Status Filter */}
+              <div>
+                <Label htmlFor="review-filter" className="text-sm font-medium">
+                  Review Status
+                </Label>
+                <Select value={reviewedFilter} onValueChange={setReviewedFilter}>
+                  <SelectTrigger id="review-filter" className="mt-1">
+                    <SelectValue placeholder="All" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="reviewed">Reviewed</SelectItem>
+                    <SelectItem value="unreviewed">Unreviewed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {/* Active Filters Summary */}
-            {(vinSearch || selectedInspectorId !== "all" || selectedAuctionId !== "all" || selectedDays !== "all" || laneSearch || runSearch) && (
+            {(vinSearch || selectedInspectorId !== "all" || selectedAuctionId !== "all" || selectedDays !== "all" || laneSearch || runSearch || reviewedFilter !== "all") && (
               <div className="mt-4 flex items-center gap-2 text-sm">
                 <Filter className="h-4 w-4 text-gray-500" />
                 <span className="text-gray-600">Active filters:</span>
@@ -280,6 +388,11 @@ export default function CompletedInspections() {
                     Run: {runSearch}
                   </Badge>
                 )}
+                {reviewedFilter !== "all" && (
+                  <Badge variant="secondary" className="text-xs">
+                    Review: {reviewedFilter === "reviewed" ? "Reviewed" : "Unreviewed"}
+                  </Badge>
+                )}
                 <Button
                   variant="ghost"
                   size="sm"
@@ -290,6 +403,7 @@ export default function CompletedInspections() {
                     setSelectedDays("all");
                     setLaneSearch("");
                     setRunSearch("");
+                    setReviewedFilter("all");
                   }}
                   className="ml-auto text-xs"
                 >
@@ -300,7 +414,7 @@ export default function CompletedInspections() {
           </CardContent>
         </Card>
 
-        {!inspections || inspections.length === 0 ? (
+        {!inspectionPackages || inspectionPackages.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
               <FileCheck className="h-16 w-16 mx-auto text-gray-400 mb-4" />
@@ -311,54 +425,81 @@ export default function CompletedInspections() {
             </CardContent>
           </Card>
         ) : (
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-sm text-muted-foreground">
-                  {inspections.length} completed inspection{inspections.length !== 1 ? 's' : ''}
-                </p>
-              </div>
+          <div className="space-y-6">
+            {/* Summary Stats */}
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                {inspectionPackages.length} inspection package{inspectionPackages.length !== 1 ? 's' : ''}
+                {' '}({inspections.length} total inspection{inspections.length !== 1 ? 's' : ''})
+              </p>
+            </div>
 
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[200px]">Auction</TableHead>
-                      <TableHead className="w-[100px]">Lane</TableHead>
-                      <TableHead className="w-[100px]">Run</TableHead>
-                      <TableHead className="w-[150px]">Date</TableHead>
-                      <TableHead className="w-[200px]">Vehicle</TableHead>
-                      <TableHead className="w-[150px]">Inspector</TableHead>
-                      <TableHead className="w-[120px]">Status</TableHead>
-                      <TableHead className="w-[100px]">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {inspections.map((inspection: any) => {
-                      const auction = auctions?.find((a: any) => a.id === inspection.vehicle?.runlist?.auction_id);
+            {/* Package Cards */}
+            {inspectionPackages.map((pkg: any) => (
+              <Card key={pkg.packageKey} className="overflow-hidden">
+                {/* Package Header */}
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b px-6 py-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <Package className="h-6 w-6 text-blue-600" />
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900">
+                          {pkg.auctionName}
+                          {pkg.auctionLocation && <span className="text-sm font-normal text-gray-600 ml-2">({pkg.auctionLocation})</span>}
+                        </h3>
+                        <p className="text-sm text-gray-600">
+                          Auction Date: {format(new Date(pkg.auctionStartDate), "MMMM d, yyyy")}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-4">
+                      <Badge className="bg-blue-100 text-blue-800">
+                        {pkg.totalCount} Inspection{pkg.totalCount !== 1 ? 's' : ''}
+                      </Badge>
+                      <Badge className="bg-green-100 text-green-800">
+                        {pkg.reviewedCount} Reviewed
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
 
-                      return (
+                {/* Inspections Table */}
+                <CardContent className="p-0">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[60px]">Rev.</TableHead>
+                        <TableHead className="w-[80px]">Lane</TableHead>
+                        <TableHead className="w-[80px]">Run</TableHead>
+                        <TableHead className="w-[200px]">Vehicle</TableHead>
+                        <TableHead className="w-[120px]">Inspector</TableHead>
+                        <TableHead className="w-[100px]">Status</TableHead>
+                        <TableHead className="w-[120px]">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {pkg.inspections.map((inspection: any) => (
                         <TableRow
                           key={inspection.id}
-                          className={`hover:bg-muted/50 ${
+                          className={`${
                             inspection.is_recommended
                               ? 'bg-green-50 border-l-4 border-green-500'
+                              : inspection.reviewed
+                              ? 'bg-gray-50'
                               : ''
-                          }`}
+                          } hover:bg-muted/50`}
                         >
-                          <TableCell className="font-medium">
-                            {auction?.name || 'Unknown Auction'}
-                          </TableCell>
                           <TableCell>
+                            <Checkbox
+                              checked={inspection.reviewed}
+                              onCheckedChange={() => toggleReviewMutation.mutate(inspection.id)}
+                            />
+                          </TableCell>
+                          <TableCell className="font-medium">
                             {inspection.vehicle?.lane_number || 'N/A'}
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="font-medium">
                             {inspection.vehicle?.run_number || 'N/A'}
-                          </TableCell>
-                          <TableCell>
-                            {inspection.completion_date
-                              ? format(new Date(inspection.completion_date), "MMM d, yyyy")
-                              : "Recently"}
                           </TableCell>
                           <TableCell>
                             <div className="space-y-1">
@@ -370,16 +511,13 @@ export default function CompletedInspections() {
                               </div>
                             </div>
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="text-sm">
                             {inspection.inspector?.user?.name || "Unknown"}
                           </TableCell>
                           <TableCell>
-                            <div className="flex items-center space-x-2">
-                              <Badge variant="default" className="bg-green-100 text-green-800">
-                                COMPLETED
-                              </Badge>
+                            <div className="flex items-center space-x-1">
                               {inspection.is_recommended && (
-                                <Badge variant="default" className="bg-gradient-to-r from-green-600 to-emerald-600 text-white flex items-center">
+                                <Badge className="bg-gradient-to-r from-green-600 to-emerald-600 text-white flex items-center">
                                   <Star className="h-3 w-3 mr-1" />
                                   REC
                                 </Badge>
@@ -393,18 +531,17 @@ export default function CompletedInspections() {
                               onClick={() => navigate(`/inspection-detail/${inspection.id}`)}
                             >
                               <Eye className="h-4 w-4 mr-1" />
-                              View Details
+                              View
                             </Button>
                           </TableCell>
                         </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-
-            </CardContent>
-          </Card>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         )}
       </div>
     </div>

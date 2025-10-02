@@ -44,6 +44,7 @@ const manualInspectionBatchSchema = z.object({
   inspector_id: z.string(),
   auction_id: z.string().min(1, "Auction is required"),
   inspection_date: z.string().min(1, "Inspection date is required"),
+  auction_start_date: z.string().min(1, "Auction start date is required"),
 });
 
 type ManualInspectionBatchFormData = z.infer<typeof manualInspectionBatchSchema>;
@@ -73,6 +74,7 @@ function BatchColumnMappingModal({
     inspector_id: number | null;
     scheduled_date: string;
     inspection_date: string;
+    auction_start_date: string;
   };
   isAutoNation?: boolean;
 }) {
@@ -354,6 +356,7 @@ export default function ManualInspectionBatchUploadModal({
       inspector_id: "none",
       auction_id: "",
       inspection_date: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
+      auction_start_date: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
     },
   });
 
@@ -574,6 +577,21 @@ export default function ManualInspectionBatchUploadModal({
                 )}
               />
 
+              {/* Auction Start Date */}
+              <FormField
+                control={form.control}
+                name="auction_start_date"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Auction Start Date</FormLabel>
+                    <FormControl>
+                      <Input type="datetime-local" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               {/* File Upload with Drag and Drop */}
               <div className="space-y-2">
                 <FormLabel>Upload CSV File</FormLabel>
@@ -695,6 +713,7 @@ export default function ManualInspectionBatchUploadModal({
             inspector_id: formData.inspector_id !== "none" ? parseInt(formData.inspector_id) : null,
             scheduled_date: formData.inspection_date,
             inspection_date: formData.inspection_date,
+            auction_start_date: formData.auction_start_date,
           }}
         />
       )}
