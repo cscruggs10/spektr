@@ -474,7 +474,9 @@ export default function CompletedInspections() {
                           {pkg.auctionLocation && <span className="text-sm font-normal text-gray-600 ml-2">({pkg.auctionLocation})</span>}
                         </h3>
                         <p className="text-sm text-gray-600">
-                          Auction Date: {format(new Date(pkg.auctionStartDate), "MMMM d, yyyy")}
+                          {pkg.auctionStartDate
+                            ? `Auction Date: ${format(new Date(pkg.auctionStartDate), "MMMM d, yyyy")}`
+                            : "Legacy inspections from before auction date tracking"}
                         </p>
                       </div>
                     </div>
