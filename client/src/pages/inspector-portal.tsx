@@ -581,7 +581,14 @@ export default function InspectorPortal() {
                       <span className="font-medium">VIN:</span> {inspection.vehicle.vin}
                     </div>
                   )}
-                  
+
+                  {inspection.notes && (
+                    <div className="text-sm bg-blue-50 border border-blue-200 rounded p-2">
+                      <span className="font-medium text-blue-900">Notes:</span>
+                      <p className="text-blue-800 mt-1">{inspection.notes}</p>
+                    </div>
+                  )}
+
                   <div className="flex items-center text-sm text-gray-600">
                     <Clock className="h-4 w-4 mr-1" />
                     Created: {formatDateTime(inspection.created_at)}
@@ -1087,7 +1094,7 @@ export default function InspectorPortal() {
                               const formData = new FormData();
                               formData.append("files", file);
 
-                              const res = await apiRequest("POST", `/api/inspections/${selectedInspection.id}/uploads`, formData);
+                              const res = await apiRequest("POST", `/api/inspections/${activeInspection.id}/uploads`, formData);
                               const data = await res.json();
 
                               if (data.files && data.files.length > 0) {
