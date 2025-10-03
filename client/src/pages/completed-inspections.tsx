@@ -126,12 +126,17 @@ export default function CompletedInspections() {
     if (!inspections || inspections.length === 0) return [];
 
     const packagesMap = new Map<string, any>();
+    const ungroupedInspections: any[] = [];
 
     inspections.forEach((inspection: any) => {
       const auctionId = inspection.vehicle?.runlist?.auction_id;
       const auctionStartDate = inspection.auction_start_date;
 
-      if (!auctionId || !auctionStartDate) return; // Skip if missing required data
+      // If missing required data, add to ungrouped section
+      if (!auctionId || !auctionStartDate) {
+        ungroupedInspections.push(inspection);
+        return;
+      }
 
       // Create a unique key for this package
       const packageKey = `${auctionId}-${auctionStartDate}`;
@@ -152,7 +157,7 @@ export default function CompletedInspections() {
     });
 
     // Convert map to array and sort inspections within each package
-    return Array.from(packagesMap.values()).map(pkg => ({
+    const packages = Array.from(packagesMap.values()).map(pkg => ({
       ...pkg,
       inspections: pkg.inspections.sort((a: any, b: any) => {
         // Sort by lane number first, then run number
@@ -172,6 +177,27 @@ export default function CompletedInspections() {
       // Sort packages by auction_start_date (newest first)
       return new Date(b.auctionStartDate).getTime() - new Date(a.auctionStartDate).getTime();
     });
+
+    // Add ungrouped inspections as a separate package at the end if any exist
+    if (ungroupedInspections.length > 0) {
+      packages.push({
+        packageKey: 'ungrouped',
+        auctionId: null,
+        auctionStartDate: null,
+        auctionName: "Ungrouped Inspections",
+        auctionLocation: "Missing auction or date information",
+        inspections: ungroupedInspections.sort((a: any, b: any) => {
+          // Sort by completion date (newest first)
+          const dateA = new Date(a.completion_date || 0);
+          const dateB = new Date(b.completion_date || 0);
+          return dateB.getTime() - dateA.getTime();
+        }),
+        totalCount: ungroupedInspections.length,
+        reviewedCount: ungroupedInspections.filter((i: any) => i.reviewed).length,
+      });
+    }
+
+    return packages;
   }, [inspections, auctions]);
 
   // Toggle review status mutation
