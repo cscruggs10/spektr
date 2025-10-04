@@ -48,8 +48,20 @@ interface InspectionResult {
 
 export default function InspectionDetailSimple() {
   const { id } = useParams<{ id: string }>();
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
   const { toast } = useToast();
+
+  // Parse query parameters to determine where to navigate back
+  const searchParams = new URLSearchParams(location.split('?')[1] || '');
+  const fromPage = searchParams.get('from');
+  const packageKey = searchParams.get('packageKey');
+
+  const getBackUrl = () => {
+    if (fromPage === 'completed') {
+      return '/completed-inspections';
+    }
+    return '/inspector-portal';
+  };
 
   const { data: inspection, isLoading } = useQuery<Inspection>({
     queryKey: ["/api/inspections", id],
@@ -76,7 +88,7 @@ export default function InspectionDetailSimple() {
         title: "Success",
         description: "Inspection completed successfully",
       });
-      navigate("/inspector-portal");
+      navigate(getBackUrl());
     },
     onError: () => {
       toast({
@@ -100,9 +112,9 @@ export default function InspectionDetailSimple() {
       <div className="flex flex-col items-center justify-center min-h-screen text-center">
         <h2 className="text-2xl font-bold mb-2">Inspection Not Found</h2>
         <p className="text-muted-foreground mb-4">The inspection you're looking for doesn't exist.</p>
-        <Button onClick={() => navigate("/inspector-portal")}>
+        <Button onClick={() => navigate(getBackUrl())}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Portal
+          {fromPage === 'completed' ? 'Back to Completed Inspections' : 'Back to Portal'}
         </Button>
       </div>
     );
@@ -114,13 +126,13 @@ export default function InspectionDetailSimple() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       <div className="container mx-auto px-4 py-6">
         <div className="mb-6">
-          <Button 
-            variant="ghost" 
-            onClick={() => navigate("/inspector-portal")}
+          <Button
+            variant="ghost"
+            onClick={() => navigate(getBackUrl())}
             className="mb-4"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Inspector Portal
+            {fromPage === 'completed' ? 'Back to Completed Inspections' : 'Back to Inspector Portal'}
           </Button>
           
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
@@ -353,9 +365,9 @@ export default function InspectionDetailSimple() {
             {!isCompletedInspection && (
               <div className="px-6 pb-6">
                 <div className="flex justify-between">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => navigate("/inspector-portal")}
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate(getBackUrl())}
                   >
                     Cancel
                   </Button>

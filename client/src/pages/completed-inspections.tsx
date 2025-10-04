@@ -556,7 +556,7 @@ export default function CompletedInspections() {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => navigate(`/inspection-detail/${inspection.id}`)}
+                              onClick={() => navigate(`/inspection-detail/${inspection.id}?from=completed&packageKey=${pkg.packageKey}`)}
                             >
                               <Eye className="h-4 w-4 mr-1" />
                               View
