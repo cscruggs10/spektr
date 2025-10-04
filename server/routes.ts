@@ -18,7 +18,7 @@ import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { db } from "./db";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, or, inArray, sql } from "drizzle-orm";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -1291,15 +1291,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       const runlist = await storage.getRunlist(id);
-      
+
       if (!runlist) {
         return res.status(404).json({ error: "Runlist not found" });
       }
-      
+
       res.json(runlist);
     } catch (error) {
       console.error("Error fetching runlist:", error);
       res.status(500).json({ error: "Failed to fetch runlist" });
+    }
+  });
+
+  // ------------------------
+  // Package routes (packages are runlists with is_package = true)
+  // ------------------------
+
+  // Get packages assigned to an inspector
+  app.get("/api/packages/inspector/:inspectorId", async (req, res) => {
+    try {
+      const inspectorId = parseInt(req.params.inspectorId);
+      const packages = await storage.getPackagesByInspector(inspectorId);
+      res.json(packages);
+    } catch (error) {
+      console.error("Error fetching inspector packages:", error);
+      res.status(500).json({ error: "Failed to fetch inspector packages" });
+    }
+  });
+
+  // Get a specific package
+  app.get("/api/packages/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const pkg = await storage.getPackage(id);
+
+      if (!pkg) {
+        return res.status(404).json({ error: "Package not found" });
+      }
+
+      res.json(pkg);
+    } catch (error) {
+      console.error("Error fetching package:", error);
+      res.status(500).json({ error: "Failed to fetch package" });
+    }
+  });
+
+  // Update package status
+  app.patch("/api/packages/:id/status", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { status } = req.body;
+
+      if (!status) {
+        return res.status(400).json({ error: "Status is required" });
+      }
+
+      const updatedPackage = await storage.updatePackageStatus(id, status);
+
+      if (!updatedPackage) {
+        return res.status(404).json({ error: "Package not found" });
+      }
+
+      res.json(updatedPackage);
+    } catch (error) {
+      console.error("Error updating package status:", error);
+      res.status(500).json({ error: "Failed to update package status" });
     }
   });
 
@@ -2274,13 +2330,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const isAutoNation = auction.length > 0 &&
         (auction[0].auction_group === 'Auto Nation' || isAutoNationAuction(auction[0].name));
 
-      // Create a temporary runlist for these manually added vehicles (no user tracking needed)
+      // Extract package information from first item
+      const packageName = firstItem.package_name || `Manual Batch Upload ${new Date().toISOString()}`;
+      const assignedInspectorId = firstItem.assigned_inspector_id || null;
+
+      // Create an inspection package (runlist with package fields)
       const runlist = await storage.createRunlist({
         auction_id: firstItem.auction_id,
-        filename: `Manual Batch Upload ${new Date().toISOString()}`,
+        filename: packageName,
         processed: true,
         column_mapping: { manual: true },
-        uploaded_by: null // No user tracking for batch uploads
+        uploaded_by: null, // No user tracking for batch uploads
+        // Package-specific fields
+        package_name: packageName,
+        assigned_inspector_id: assignedInspectorId,
+        package_status: 'pending',
+        is_package: true
       });
 
       // Process each item in the batch
@@ -3250,6 +3315,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("=== DELETION FAILED ===", error);
       res.status(500).json({ error: "Failed to delete all data", details: error.message });
+    }
+  });
+
+  // Clean up pending and in_progress inspections only (keep completed)
+  app.delete("/api/inspections/cleanup-incomplete", async (req, res) => {
+    try {
+      console.log("=== CLEANING UP INCOMPLETE INSPECTIONS ===");
+
+      // Get all pending and in_progress inspections
+      const incompleteInspections = await db.select()
+        .from(inspections)
+        .where(or(
+          eq(inspections.status, 'pending'),
+          eq(inspections.status, 'in_progress')
+        ));
+
+      console.log(`Found ${incompleteInspections.length} incomplete inspections to delete`);
+
+      // Get vehicle IDs from these inspections
+      const vehicleIds = incompleteInspections.map(i => i.vehicle_id).filter(id => id !== null);
+
+      // Delete inspection results first (if any)
+      for (const inspection of incompleteInspections) {
+        await db.delete(inspectionResults)
+          .where(eq(inspectionResults.inspection_id, inspection.id));
+      }
+
+      // Delete the inspections
+      const deletedInspections = await db.delete(inspections)
+        .where(or(
+          eq(inspections.status, 'pending'),
+          eq(inspections.status, 'in_progress')
+        ));
+
+      // Delete associated vehicles
+      let deletedVehicles = 0;
+      if (vehicleIds.length > 0) {
+        const result = await db.delete(vehicles)
+          .where(inArray(vehicles.id, vehicleIds));
+        deletedVehicles = vehicleIds.length;
+      }
+
+      console.log(`Deleted ${incompleteInspections.length} inspections and ${deletedVehicles} vehicles`);
+      console.log("=== CLEANUP COMPLETED ===");
+
+      res.json({
+        message: "Incomplete inspections cleaned up successfully",
+        deleted: {
+          inspections: incompleteInspections.length,
+          vehicles: deletedVehicles
+        }
+      });
+    } catch (error) {
+      console.error("=== CLEANUP FAILED ===", error);
+      res.status(500).json({ error: "Failed to clean up incomplete inspections", details: error.message });
     }
   });
 

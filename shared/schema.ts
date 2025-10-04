@@ -157,6 +157,11 @@ export const runlists = pgTable("runlists", {
   processed: boolean("processed").default(false),
   column_mapping: json("column_mapping"),
   uploaded_by: integer("uploaded_by").references(() => users.id),
+  // Package-related fields for inspector workflow
+  package_name: text("package_name"), // Friendly name for the inspection package
+  assigned_inspector_id: integer("assigned_inspector_id").references(() => inspectors.id), // Which inspector should do this package
+  package_status: text("package_status").default("pending"), // 'pending', 'in_progress', 'completed'
+  is_package: boolean("is_package").default(false), // Whether this runlist represents an inspection package
 });
 
 // Base runlist schema from Drizzle
@@ -449,6 +454,10 @@ export const runlistsRelations = relations(runlists, ({ one, many }) => ({
   uploader: one(users, {
     fields: [runlists.uploaded_by],
     references: [users.id],
+  }),
+  assignedInspector: one(inspectors, {
+    fields: [runlists.assigned_inspector_id],
+    references: [inspectors.id],
   }),
   vehicles: many(vehicles),
 }));

@@ -83,6 +83,15 @@ export interface IStorage {
   createRunlist(runlist: InsertRunlist): Promise<Runlist>;
   updateRunlist(id: number, data: Partial<InsertRunlist>): Promise<Runlist | undefined>;
 
+  // Package management (packages are runlists with is_package = true)
+  getPackagesByInspector(inspectorId: number): Promise<(Runlist & {
+    auction: Auction,
+    inspectionCount: number,
+    completedCount: number
+  })[]>;
+  getPackage(packageId: number): Promise<Runlist | undefined>;
+  updatePackageStatus(packageId: number, status: string): Promise<Runlist | undefined>;
+
   // Vehicle management
   getVehicles(runlistId?: number): Promise<Vehicle[]>;
   getVehicle(id: number): Promise<Vehicle | undefined>;
@@ -102,6 +111,7 @@ export interface IStorage {
     inspectorId?: number;
     status?: string;
     auctionId?: number;
+    packageId?: number; // Filter by inspection package (runlist_id)
     startDate?: Date;
     endDate?: Date;
     vinLast6?: string;
@@ -474,6 +484,77 @@ export class DatabaseStorage implements IStorage {
     return updatedRunlist;
   }
 
+  // Package management methods
+  async getPackagesByInspector(inspectorId: number): Promise<(Runlist & {
+    auction: Auction,
+    inspectionCount: number,
+    completedCount: number
+  })[]> {
+    // Get all packages assigned to this inspector
+    const packages = await db.query.runlists.findMany({
+      where: and(
+        eq(runlists.assigned_inspector_id, inspectorId),
+        eq(runlists.is_package, true)
+      ),
+      with: {
+        auction: true,
+      },
+      orderBy: (runlists, { desc }) => [desc(runlists.upload_date)],
+    });
+
+    // For each package, count total and completed inspections
+    const packagesWithCounts = await Promise.all(
+      packages.map(async (pkg) => {
+        // Get all vehicles in this package
+        const pkgVehicles = await db.select()
+          .from(vehicles)
+          .where(eq(vehicles.runlist_id, pkg.id));
+
+        const vehicleIds = pkgVehicles.map(v => v.id);
+
+        let inspectionCount = 0;
+        let completedCount = 0;
+
+        if (vehicleIds.length > 0) {
+          // Count total inspections
+          const allInspections = await db.select()
+            .from(inspections)
+            .where(inArray(inspections.vehicle_id, vehicleIds));
+
+          inspectionCount = allInspections.length;
+          completedCount = allInspections.filter(i => i.status === 'completed').length;
+        }
+
+        return {
+          ...pkg,
+          inspectionCount,
+          completedCount,
+        };
+      })
+    );
+
+    return packagesWithCounts;
+  }
+
+  async getPackage(packageId: number): Promise<Runlist | undefined> {
+    const [pkg] = await db.select()
+      .from(runlists)
+      .where(and(
+        eq(runlists.id, packageId),
+        eq(runlists.is_package, true)
+      ));
+    return pkg;
+  }
+
+  async updatePackageStatus(packageId: number, status: string): Promise<Runlist | undefined> {
+    const [updatedPackage] = await db
+      .update(runlists)
+      .set({ package_status: status })
+      .where(eq(runlists.id, packageId))
+      .returning();
+    return updatedPackage;
+  }
+
   // Vehicle management
   async getVehicles(runlistId?: number): Promise<Vehicle[]> {
     if (runlistId) {
@@ -614,6 +695,7 @@ export class DatabaseStorage implements IStorage {
     inspectorId?: number;
     status?: string;
     auctionId?: number;
+    packageId?: number;
     startDate?: Date;
     endDate?: Date;
     vinLast6?: string;
@@ -664,6 +746,15 @@ export class DatabaseStorage implements IStorage {
             SELECT v.id FROM ${vehicles} v
             LEFT JOIN ${runlists} r ON v.runlist_id = r.id
             WHERE r.auction_id = ${filters.auctionId}
+          )`
+        );
+      }
+
+      // Filter by package (runlist_id)
+      if (filters.packageId) {
+        conditions.push(
+          sql`${inspections.vehicle_id} IN (
+            SELECT id FROM ${vehicles} WHERE runlist_id = ${filters.packageId}
           )`
         );
       }

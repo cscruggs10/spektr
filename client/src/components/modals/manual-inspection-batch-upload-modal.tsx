@@ -41,7 +41,10 @@ import { DatePicker } from "@/components/ui/date-picker";
 
 // Schema for manual inspection batch upload
 const manualInspectionBatchSchema = z.object({
-  inspector_id: z.string(),
+  package_name: z.string().min(1, "Package name is required"),
+  inspector_id: z.string().min(1, "Inspector is required").refine(val => val !== "none", {
+    message: "Please select an inspector",
+  }),
   auction_id: z.string().min(1, "Auction is required"),
   inspection_date: z.string().min(1, "Inspection date is required"),
   auction_start_date: z.string().min(1, "Auction start date is required"),
@@ -353,7 +356,8 @@ export default function ManualInspectionBatchUploadModal({
   const form = useForm<ManualInspectionBatchFormData>({
     resolver: zodResolver(manualInspectionBatchSchema),
     defaultValues: {
-      inspector_id: "none",
+      package_name: "",
+      inspector_id: "",
       auction_id: "",
       inspection_date: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
       auction_start_date: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
@@ -495,6 +499,21 @@ export default function ManualInspectionBatchUploadModal({
           
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              {/* Package Name */}
+              <FormField
+                control={form.control}
+                name="package_name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Package Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., Carlos - Manheim Orlando - Dec 10" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               {/* Auction Selection */}
               <FormField
                 control={form.control}
@@ -535,7 +554,7 @@ export default function ManualInspectionBatchUploadModal({
                 name="inspector_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Inspector (Optional)</FormLabel>
+                    <FormLabel>Inspector</FormLabel>
                     <Select
                       value={field.value}
                       onValueChange={field.onChange}
@@ -546,10 +565,9 @@ export default function ManualInspectionBatchUploadModal({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="none">No inspector assigned</SelectItem>
                         {inspectors?.map((inspector) => (
-                          <SelectItem 
-                            key={inspector.id} 
+                          <SelectItem
+                            key={inspector.id}
                             value={inspector.id.toString()}
                           >
                             {inspector.user.name}
@@ -714,6 +732,9 @@ export default function ManualInspectionBatchUploadModal({
             scheduled_date: formData.inspection_date,
             inspection_date: formData.inspection_date,
             auction_start_date: formData.auction_start_date,
+            // Package-specific fields
+            package_name: formData.package_name,
+            assigned_inspector_id: parseInt(formData.inspector_id),
           }}
         />
       )}
