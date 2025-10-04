@@ -22,7 +22,7 @@ import { eq, and, or, inArray, sql } from "drizzle-orm";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import { cloudinaryUpload } from "./cloudinary";
+import { cloudinaryUpload, handleMulterUpload } from "./cloudinary";
 import { localUpload } from "./local-upload";
 import { 
   insertUserSchema, insertDealerSchema, insertInspectorSchema, 
@@ -2674,7 +2674,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update an inspection
-  app.patch("/api/inspections/:id", cloudinaryUpload.any(), async (req, res) => {
+  app.patch("/api/inspections/:id", handleMulterUpload(cloudinaryUpload.any()), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const inspection = await storage.getInspection(id);
@@ -2897,7 +2897,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Transcribe voice note endpoint
-  app.post("/api/transcribe-voice", cloudinaryUpload.single('audio'), async (req, res) => {
+  app.post("/api/transcribe-voice", handleMulterUpload(cloudinaryUpload.single('audio')), async (req, res) => {
     try {
       const audioFile = req.file;
       const language = req.body.language || 'en';
@@ -2944,7 +2944,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     req.setTimeout(5 * 60 * 1000); // 5 minutes
     res.setTimeout(5 * 60 * 1000); // 5 minutes
     next();
-  }, cloudinaryUpload.array("files", 10), async (req, res) => {
+  }, handleMulterUpload(cloudinaryUpload.array("files", 10)), async (req, res) => {
     try {
       const inspectionId = parseInt(req.params.id);
       
@@ -3094,7 +3094,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Skip inspection endpoint
-  app.post("/api/inspections/:id/skip", cloudinaryUpload.single("photo"), async (req, res) => {
+  app.post("/api/inspections/:id/skip", handleMulterUpload(cloudinaryUpload.single("photo")), async (req, res) => {
     try {
       const inspectionId = parseInt(req.params.id);
       const { reason, note } = req.body;

@@ -54,18 +54,18 @@ const storage = new CloudinaryStorage({
   },
 });
 
-// Create multer upload middleware
-export const cloudinaryUpload = multer({ 
+// Create multer upload middleware with error handling
+export const cloudinaryUpload = multer({
   storage: storage,
   limits: {
     fileSize: 200 * 1024 * 1024, // 200MB limit for videos
   },
   fileFilter: (req, file, cb) => {
     console.log(`Upload attempt - File: ${file.originalname}, MIME type: ${file.mimetype}`);
-    
+
     // Accept all image, video, and audio files (including mobile formats)
-    if (file.mimetype.startsWith('image/') || 
-        file.mimetype.startsWith('video/') || 
+    if (file.mimetype.startsWith('image/') ||
+        file.mimetype.startsWith('video/') ||
         file.mimetype.startsWith('audio/')) {
       cb(null, true);
     } else {
@@ -74,5 +74,47 @@ export const cloudinaryUpload = multer({
     }
   }
 });
+
+// Helper function to wrap multer middleware with proper error handling
+export function handleMulterUpload(multerMiddleware: any) {
+  return (req: any, res: any, next: any) => {
+    multerMiddleware(req, res, (err: any) => {
+      if (err) {
+        console.error('Multer/Cloudinary upload error:', err);
+
+        // Handle specific multer errors
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          return res.status(413).json({
+            error: 'File too large',
+            message: 'File size exceeds 200MB limit'
+          });
+        }
+
+        if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+          return res.status(400).json({
+            error: 'Too many files',
+            message: 'Maximum 10 files allowed per upload'
+          });
+        }
+
+        // Handle Cloudinary errors
+        if (err.message && err.message.includes('Cloudinary')) {
+          return res.status(503).json({
+            error: 'Upload service error',
+            message: 'Failed to upload to cloud storage. Please try again.'
+          });
+        }
+
+        // Generic error
+        return res.status(500).json({
+          error: 'Upload failed',
+          message: err.message || 'Unknown upload error occurred'
+        });
+      }
+
+      next();
+    });
+  };
+}
 
 export { cloudinary };

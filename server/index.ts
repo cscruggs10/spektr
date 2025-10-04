@@ -100,9 +100,29 @@ app.use((req, res, next) => {
       process.exit(1);
     });
 
-    process.on('unhandledRejection', (reason, promise) => {
+    process.on('unhandledRejection', (reason: any, promise) => {
       log(`Unhandled Rejection at: ${promise}, reason: ${reason}`, "error");
-      process.exit(1);
+
+      // Log stack trace if available
+      if (reason && reason.stack) {
+        log(`Stack: ${reason.stack}`, "error");
+      }
+
+      // Don't exit for upload/network errors - just log them
+      const reasonStr = String(reason);
+      const isUploadError = reasonStr.includes('upload') ||
+                           reasonStr.includes('cloudinary') ||
+                           reasonStr.includes('multer') ||
+                           reasonStr.includes('ECONNRESET') ||
+                           reasonStr.includes('ETIMEDOUT') ||
+                           reasonStr.includes('ENOTFOUND');
+
+      if (isUploadError) {
+        log('Upload-related error detected - continuing server operation', "error");
+      } else {
+        log('Critical error - shutting down', "error");
+        process.exit(1);
+      }
     });
 
     process.on('SIGTERM', () => {
