@@ -646,18 +646,18 @@ export default function InspectorPortal() {
 
       {/* Inspection Modal */}
       <Dialog open={showInspectionModal} onOpenChange={setShowInspectionModal}>
-        <DialogContent className={`w-full max-w-full sm:max-w-2xl max-h-[100vh] sm:max-h-[90vh] overflow-y-auto p-4 sm:p-6 ${
+        <DialogContent className={`w-full max-w-full sm:max-w-2xl max-h-[100vh] sm:max-h-[90vh] overflow-y-auto overflow-x-hidden p-3 sm:p-6 ${
           isDaylightMode
             ? 'bg-yellow-50 border-4 border-black text-black'
             : ''
         }`}>
           <DialogHeader className={isDaylightMode ? 'border-b-4 border-black pb-4' : ''}>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
               <div className="flex-1 min-w-0">
-                <DialogTitle className={`text-lg sm:text-xl font-bold ${isDaylightMode ? 'text-xl sm:text-2xl font-black text-black' : ''}`}>
+                <DialogTitle className={`text-base sm:text-xl font-bold break-words ${isDaylightMode ? 'text-lg sm:text-2xl font-black text-black' : ''}`}>
                   Vehicle Inspection
                 </DialogTitle>
-                <DialogDescription className={`text-sm sm:text-base break-words ${isDaylightMode ? 'text-base sm:text-lg font-bold text-gray-900' : ''}`}>
+                <DialogDescription className={`text-xs sm:text-base break-words ${isDaylightMode ? 'text-sm sm:text-lg font-bold text-gray-900' : ''}`}>
                   {activeInspection?.vehicle?.year} {activeInspection?.vehicle?.make} {activeInspection?.vehicle?.model}
                 </DialogDescription>
               </div>
@@ -665,9 +665,9 @@ export default function InspectorPortal() {
                 variant="outline"
                 size="sm"
                 onClick={() => setIsDaylightMode(!isDaylightMode)}
-                className={`min-w-[100px] sm:min-w-[120px] ${isDaylightMode
-                  ? 'bg-black text-yellow-50 border-2 sm:border-4 border-black hover:bg-gray-800 font-bold text-sm sm:text-lg px-3 sm:px-6 py-2 sm:py-3'
-                  : 'border-2 border-yellow-500 text-yellow-600 hover:bg-yellow-50 font-semibold text-sm sm:text-lg px-3 sm:px-6 py-2 sm:py-3'
+                className={`shrink-0 whitespace-nowrap ${isDaylightMode
+                  ? 'bg-black text-yellow-50 border-2 border-black hover:bg-gray-800 font-bold text-xs sm:text-base px-2 sm:px-4 py-1.5 sm:py-2'
+                  : 'border-2 border-yellow-500 text-yellow-600 hover:bg-yellow-50 font-semibold text-xs sm:text-base px-2 sm:px-4 py-1.5 sm:py-2'
                 }`}
               >
                 {isDaylightMode ? '🌙 Normal' : '☀️ Daylight'}
@@ -675,35 +675,35 @@ export default function InspectorPortal() {
             </div>
           </DialogHeader>
           
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {/* Vehicle Details */}
             <Card>
-              <CardContent className="p-4 space-y-3">
-                <div className="flex items-center gap-2 mb-3">
-                  <Car className="h-5 w-5 text-blue-600" />
-                  <span className="font-medium">Vehicle Information</span>
+              <CardContent className="p-3 sm:p-4 space-y-2 sm:space-y-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Car className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
+                  <span className="font-medium text-sm sm:text-base">Vehicle Information</span>
                 </div>
-                
-                <div className="grid grid-cols-2 gap-4 text-sm">
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 text-xs sm:text-sm">
                   {activeInspection?.vehicle?.vin && (
-                    <div>
+                    <div className="break-all">
                       <span className="font-medium">VIN:</span> {activeInspection.vehicle.vin}
                     </div>
                   )}
-                  
+
                   {activeInspection?.vehicle?.lane_number && (
-                    <div>
+                    <div className="break-words">
                       <span className="font-medium">Location:</span> Lane {activeInspection.vehicle.lane_number}
                       {activeInspection.vehicle.run_number && ` / Run ${activeInspection.vehicle.run_number}`}
                     </div>
                   )}
-                  
+
                   {activeInspection?.vehicle?.mileage && (
                     <div>
                       <span className="font-medium">Mileage:</span> {activeInspection.vehicle.mileage.toLocaleString()}
                     </div>
                   )}
-                  
+
                   {activeInspection?.vehicle?.color && (
                     <div>
                       <span className="font-medium">Color:</span> {activeInspection.vehicle.color}
@@ -714,13 +714,13 @@ export default function InspectorPortal() {
             </Card>
 
             {/* Inspection Workflow Tabs - Responsive Layout */}
-            <div className={`border rounded-lg ${
+            <div className={`border rounded-lg overflow-hidden ${
               isDaylightMode
                 ? 'border-4 border-black bg-yellow-50'
                 : ''
             }`}>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 text-sm md:text-xs">
-                <div className={`p-3 md:p-2 border-r border-b text-center relative ${
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 text-xs md:text-sm">
+                <div className={`p-2 border-r border-b text-center relative ${
                   isDaylightMode
                     ? sectionStatus.photos
                       ? 'bg-green-300 border-2 border-black'
@@ -729,19 +729,19 @@ export default function InspectorPortal() {
                     ? 'bg-green-100'
                     : 'bg-blue-50'
                 }`}>
-                  <div className={`font-medium ${
-                    isDaylightMode ? 'text-black font-black text-base' : ''
+                  <div className={`font-medium text-xs ${
+                    isDaylightMode ? 'text-black font-black text-sm' : ''
                   }`}>1. Photos</div>
-                  <div className={`text-xs ${
+                  <div className={`text-[10px] ${
                     isDaylightMode ? 'text-black font-bold' : 'text-gray-500'
-                  }`}>Run/VIN Labels</div>
+                  }`}>Run/VIN</div>
                   {sectionStatus.photos && (
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-3xl text-green-600 font-bold">✓</span>
+                      <span className="text-2xl sm:text-3xl text-green-600 font-bold">✓</span>
                     </div>
                   )}
                 </div>
-                <div className={`p-3 md:p-2 border-b lg:border-r text-center relative ${
+                <div className={`p-2 border-b lg:border-r text-center relative ${
                   isDaylightMode
                     ? sectionStatus.walkaroundVideo
                       ? 'bg-green-300 border-2 border-black'
@@ -750,19 +750,19 @@ export default function InspectorPortal() {
                     ? 'bg-green-100'
                     : ''
                 }`}>
-                  <div className={`font-medium ${
-                    isDaylightMode ? 'text-black font-black text-base' : ''
-                  }`}>2. Walkaround</div>
-                  <div className={`text-xs ${
+                  <div className={`font-medium text-xs ${
+                    isDaylightMode ? 'text-black font-black text-sm' : ''
+                  }`}>2. Walk</div>
+                  <div className={`text-[10px] ${
                     isDaylightMode ? 'text-black font-bold' : 'text-gray-500'
-                  }`}>1:30-2:00 min</div>
+                  }`}>1:30-2:00</div>
                   {sectionStatus.walkaroundVideo && (
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-3xl text-green-600 font-bold">✓</span>
+                      <span className="text-2xl sm:text-3xl text-green-600 font-bold">✓</span>
                     </div>
                   )}
                 </div>
-                <div className={`p-3 md:p-2 border-r border-b lg:border-r text-center relative ${
+                <div className={`p-2 border-r border-b lg:border-r text-center relative ${
                   isDaylightMode
                     ? sectionStatus.engineVideo
                       ? 'bg-green-300 border-2 border-black'
@@ -771,31 +771,31 @@ export default function InspectorPortal() {
                     ? 'bg-green-100'
                     : ''
                 }`}>
-                  <div className={`font-medium ${
-                    isDaylightMode ? 'text-black font-black text-base' : ''
+                  <div className={`font-medium text-xs ${
+                    isDaylightMode ? 'text-black font-black text-sm' : ''
                   }`}>3. Engine</div>
-                  <div className={`text-xs ${
+                  <div className={`text-[10px] ${
                     isDaylightMode ? 'text-black font-bold' : 'text-gray-500'
-                  }`}>Running + HVAC</div>
+                  }`}>+ HVAC</div>
                   {sectionStatus.engineVideo && (
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-3xl text-green-600 font-bold">✓</span>
+                      <span className="text-2xl sm:text-3xl text-green-600 font-bold">✓</span>
                     </div>
                   )}
                 </div>
-                <div className={`p-3 md:p-2 border-b lg:border-r text-center relative ${
+                <div className={`p-2 border-b lg:border-r text-center relative ${
                   isDaylightMode
                     ? 'bg-yellow-100 border-2 border-black'
                     : ''
                 }`}>
-                  <div className={`font-medium ${
-                    isDaylightMode ? 'text-black font-black text-base' : ''
-                  }`}>4. Module Scan</div>
-                  <div className={`text-xs ${
+                  <div className={`font-medium text-xs ${
+                    isDaylightMode ? 'text-black font-black text-sm' : ''
+                  }`}>4. Module</div>
+                  <div className={`text-[10px] ${
                     isDaylightMode ? 'text-black font-bold' : 'text-gray-500'
-                  }`}>Report Link</div>
+                  }`}>Report</div>
                 </div>
-                <div className={`p-3 md:p-2 border-b lg:border-b text-center relative ${
+                <div className={`p-2 border-b lg:border-b text-center relative ${
                   isDaylightMode
                     ? sectionStatus.notes
                       ? 'bg-green-300 border-2 border-black'
@@ -804,33 +804,33 @@ export default function InspectorPortal() {
                     ? 'bg-green-100'
                     : ''
                 }`}>
-                  <div className={`font-medium ${
-                    isDaylightMode ? 'text-black font-black text-base' : ''
+                  <div className={`font-medium text-xs ${
+                    isDaylightMode ? 'text-black font-black text-sm' : ''
                   }`}>5. Notes</div>
-                  <div className={`text-xs ${
+                  <div className={`text-[10px] ${
                     isDaylightMode ? 'text-black font-bold' : 'text-gray-500'
-                  }`}>Voice + Text</div>
+                  }`}>Voice/Text</div>
                   {sectionStatus.notes && (
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-3xl text-green-600 font-bold">✓</span>
+                      <span className="text-2xl sm:text-3xl text-green-600 font-bold">✓</span>
                     </div>
                   )}
                 </div>
               </div>
               
-              <div className={`p-4 space-y-6 ${
+              <div className={`p-3 sm:p-4 space-y-4 sm:space-y-6 ${
                 isDaylightMode
                   ? 'bg-yellow-50'
                   : ''
               }`}>
                 {/* Photos Section */}
-                <div className="space-y-3">
-                  <h4 className="font-medium flex items-center">
+                <div className="space-y-2 sm:space-y-3">
+                  <h4 className="font-medium flex items-center text-sm sm:text-base">
                     <Camera className="h-4 w-4 mr-2 text-blue-600" />
                     Run/VIN Label Photos
                     {sectionStatus.photos && <span className="ml-2 text-green-600">✓</span>}
                   </h4>
-                  <p className="text-sm text-gray-500">Take clear photos of the vehicle's run label and VIN placard</p>
+                  <p className="text-xs sm:text-sm text-gray-500">Take clear photos of the vehicle's run label and VIN placard</p>
                   <div className="space-y-3">
                     <input 
                       type="file" 
@@ -904,10 +904,10 @@ export default function InspectorPortal() {
                       type="button"
                       variant="outline"
                       size="lg"
-                      className="w-full bg-blue-50 text-blue-700 border-blue-300 hover:bg-blue-100"
+                      className="w-full bg-blue-50 text-blue-700 border-blue-300 hover:bg-blue-100 text-sm sm:text-base py-3 sm:py-4"
                       onClick={() => document.getElementById('photo-upload')?.click()}
                     >
-                      <Camera className="h-5 w-5 mr-2" />
+                      <Camera className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
                       📷 Take Photos
                     </Button>
                     <p className="text-xs text-gray-500 text-center">Tap to open camera and take photos</p>
@@ -915,13 +915,13 @@ export default function InspectorPortal() {
                 </div>
 
                 {/* Walkaround Video */}
-                <div className="space-y-3">
-                  <h4 className="font-medium flex items-center">
+                <div className="space-y-2 sm:space-y-3">
+                  <h4 className="font-medium flex items-center text-sm sm:text-base">
                     <Video className="h-4 w-4 mr-2 text-green-600" />
                     Vehicle Walkaround Video
                     {sectionStatus.walkaroundVideo && <span className="ml-2 text-green-600">✓</span>}
                   </h4>
-                  <p className="text-sm text-gray-500">Record 1:30-2:00 minute video walking around exterior</p>
+                  <p className="text-xs sm:text-sm text-gray-500">Record 1:30-2:00 minute video walking around exterior</p>
                   <p className="text-xs text-orange-600">Capture all body panels, wheels, and glass</p>
                   <div className="space-y-3">
                     <input 
@@ -979,10 +979,10 @@ export default function InspectorPortal() {
                       type="button"
                       variant="outline"
                       size="lg"
-                      className="w-full bg-green-50 text-green-700 border-green-300 hover:bg-green-100"
+                      className="w-full bg-green-50 text-green-700 border-green-300 hover:bg-green-100 text-sm sm:text-base py-3 sm:py-4"
                       onClick={() => document.getElementById('walkaround-video')?.click()}
                     >
-                      <Video className="h-5 w-5 mr-2" />
+                      <Video className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
                       🎥 Record Walkaround
                     </Button>
                     <p className="text-xs text-gray-500 text-center">Tap to open camera and record video</p>
@@ -990,13 +990,13 @@ export default function InspectorPortal() {
                 </div>
 
                 {/* Engine Video */}
-                <div className="space-y-3">
-                  <h4 className="font-medium flex items-center">
+                <div className="space-y-2 sm:space-y-3">
+                  <h4 className="font-medium flex items-center text-sm sm:text-base">
                     <Video className="h-4 w-4 mr-2 text-red-600" />
                     Engine Running Video
                     {sectionStatus.engineVideo && <span className="ml-2 text-green-600">✓</span>}
                   </h4>
-                  <p className="text-sm text-gray-500">Record running engine and verify HVAC operation</p>
+                  <p className="text-xs sm:text-sm text-gray-500">Record running engine and verify HVAC operation</p>
                   <p className="text-xs text-orange-600">Show A/C and heat functioning</p>
                   <div className="space-y-3">
                     <input 
@@ -1054,10 +1054,10 @@ export default function InspectorPortal() {
                       type="button"
                       variant="outline"
                       size="lg"
-                      className="w-full bg-red-50 text-red-700 border-red-300 hover:bg-red-100"
+                      className="w-full bg-red-50 text-red-700 border-red-300 hover:bg-red-100 text-sm sm:text-base py-3 sm:py-4"
                       onClick={() => document.getElementById('engine-video')?.click()}
                     >
-                      <Video className="h-5 w-5 mr-2" />
+                      <Video className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
                       🎥 Record Engine
                     </Button>
                     <p className="text-xs text-gray-500 text-center">Tap to open camera and record engine video</p>
@@ -1065,12 +1065,12 @@ export default function InspectorPortal() {
                 </div>
 
                 {/* Full Module Scan */}
-                <div className="space-y-3">
-                  <h4 className="font-medium">Full Module Scan</h4>
-                  <p className="text-xs text-blue-600 font-semibold">
+                <div className="space-y-2 sm:space-y-3">
+                  <h4 className="font-medium text-sm sm:text-base">Full Module Scan</h4>
+                  <p className="text-xs text-blue-600 font-semibold break-words">
                     📱 Workflow: Scan → Share → Save to Files → Return here → Upload PDF
                   </p>
-                  <p className="text-xs text-gray-600 mt-1">
+                  <p className="text-xs text-gray-600 mt-1 break-words">
                     Note: The PDF will be temporarily saved to your device's Files/Downloads folder
                   </p>
                   <div className="space-y-3">
@@ -1132,15 +1132,15 @@ export default function InspectorPortal() {
                       />
                       <label
                         htmlFor="inspector-module-scan-upload"
-                        className={`w-full inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
+                        className={`w-full inline-flex items-center justify-center rounded-md font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
                           isUploadingPDF
                             ? 'opacity-50 cursor-not-allowed bg-green-400'
                             : 'cursor-pointer bg-green-600 hover:bg-green-700'
-                        } text-white font-semibold py-4 sm:py-6 text-sm sm:text-base px-3 sm:px-4`}
+                        } text-white font-semibold py-3 sm:py-4 text-sm sm:text-base px-3 sm:px-4`}
                         style={{ pointerEvents: isUploadingPDF ? 'none' : 'auto' }}
                       >
-                        <i className="fas fa-file-upload mr-2 text-lg sm:text-xl"></i>
-                        <span className="whitespace-nowrap">📄 Select PDF</span>
+                        <i className="fas fa-file-upload mr-1 sm:mr-2 text-base sm:text-lg"></i>
+                        <span className="whitespace-nowrap text-xs sm:text-sm">📄 Select PDF</span>
                       </label>
                     </div>
 
@@ -1167,8 +1167,8 @@ export default function InspectorPortal() {
                 </div>
 
                 {/* Voice Notes */}
-                <div className="space-y-3">
-                  <h4 className="font-medium flex items-center">
+                <div className="space-y-2 sm:space-y-3">
+                  <h4 className="font-medium flex items-center text-sm sm:text-base">
                     <Mic className="h-4 w-4 mr-2 text-purple-600" />
                     Voice Notes
                   </h4>
@@ -1318,8 +1318,8 @@ export default function InspectorPortal() {
             )}
 
             {/* Inspection Notes */}
-            <div className="space-y-3">
-              <Label htmlFor="inspection-notes" className="text-base font-medium">
+            <div className="space-y-2 sm:space-y-3">
+              <Label htmlFor="inspection-notes" className="text-sm sm:text-base font-medium">
                 Inspection Notes
               </Label>
               <Textarea
@@ -1335,31 +1335,31 @@ export default function InspectorPortal() {
                     setSectionStatus(prev => ({ ...prev, notes: false }));
                   }
                 }}
-                className="min-h-[120px]"
+                className="min-h-[100px] sm:min-h-[120px] text-sm sm:text-base"
               />
             </div>
 
             {/* Recommendation Toggle */}
-            <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="font-medium text-green-800">Dealer Recommendation</h4>
-                  <p className="text-sm text-green-600 mt-1">Click to mark this vehicle as recommended</p>
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-3 sm:p-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-medium text-green-800 text-sm sm:text-base">Dealer Recommendation</h4>
+                  <p className="text-xs sm:text-sm text-green-600 mt-1 break-words">Click to mark this vehicle as recommended</p>
                 </div>
                 <Button
                   type="button"
                   variant={isRecommended ? "default" : "outline"}
                   size="lg"
                   onClick={() => setIsRecommended(!isRecommended)}
-                  className={`min-w-[140px] ${
-                    isRecommended 
-                      ? 'bg-green-600 hover:bg-green-700 text-white' 
+                  className={`shrink-0 whitespace-nowrap text-xs sm:text-sm px-3 sm:px-4 py-2 sm:py-3 ${
+                    isRecommended
+                      ? 'bg-green-600 hover:bg-green-700 text-white'
                       : 'text-gray-700 hover:bg-gray-100'
                   }`}
                 >
                   {isRecommended ? (
                     <>
-                      <CheckCircle className="h-5 w-5 mr-2" />
+                      <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2" />
                       Recommended
                     </>
                   ) : (
@@ -1370,7 +1370,7 @@ export default function InspectorPortal() {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex gap-3 pt-4">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-3 sm:pt-4">
               <Button
                 variant="outline"
                 onClick={() => {
@@ -1378,20 +1378,20 @@ export default function InspectorPortal() {
                   setActiveInspection(null);
                   setInspectionNotes("");
                 }}
-                className="flex-1"
+                className="flex-1 text-xs sm:text-sm py-2 sm:py-3"
               >
                 Cancel
               </Button>
-              
+
               <Button
                 variant="outline"
                 onClick={() => setShowSkipDialog(true)}
-                className="flex-1 text-orange-600 border-orange-600 hover:bg-orange-50"
+                className="flex-1 text-orange-600 border-orange-600 hover:bg-orange-50 text-xs sm:text-sm py-2 sm:py-3"
               >
-                <X className="h-4 w-4 mr-2" />
+                <X className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                 Skip/Pass
               </Button>
-              
+
               <Button
                 onClick={() => {
                   if (activeInspection) {
@@ -1403,14 +1403,14 @@ export default function InspectorPortal() {
                   !inspectionNotes.trim() ||
                   uploadedFiles.length === 0
                 }
-                className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-50"
+                className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-xs sm:text-sm py-2 sm:py-3"
               >
                 {completeInspectionMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin mr-1 sm:mr-2" />
                 ) : (
-                  <CheckCircle className="h-4 w-4 mr-2" />
+                  <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                 )}
-                Complete Inspection
+                <span className="break-words">Complete</span>
               </Button>
             </div>
           </div>
