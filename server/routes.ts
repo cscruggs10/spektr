@@ -3151,10 +3151,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Update inspection status to canceled (since skipped is a form of cancellation)
+      // Update inspection status to completed (skipped inspections are complete, just not fully inspected)
       await storage.updateInspection(inspectionId, {
-        status: "canceled",
-        end_date: new Date().toISOString()
+        status: "completed",
+        completion_date: new Date().toISOString()
       });
 
       // Log activity

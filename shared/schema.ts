@@ -224,6 +224,27 @@ export const insertInspectionTemplateSchema = createInsertSchema(inspectionTempl
   updated_at: true,
 });
 
+// Inspection Packages - groups of inspections for a specific auction date
+export const inspectionPackages = pgTable("inspection_packages", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(), // e.g., "Chicago Auto Nation - Jan 15"
+  auction_id: integer("auction_id").references(() => auctions.id).notNull(),
+  auction_date: timestamp("auction_date").notNull(), // When the auction runs
+  inspection_date: timestamp("inspection_date"), // When inspections should be done (typically day before)
+  inspector_id: integer("inspector_id").references(() => inspectors.id),
+  status: text("status").notNull().default("pending"), // 'pending', 'in_progress', 'completed'
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  created_by: integer("created_by").references(() => users.id),
+});
+
+export const insertInspectionPackageSchema = createInsertSchema(inspectionPackages).omit({
+  id: true,
+  created_at: true,
+}).extend({
+  auction_date: z.string().datetime().or(z.date()),
+  inspection_date: z.string().datetime().optional().or(z.date().optional()),
+});
+
 // Inspection status enum
 export const inspectionStatusEnum = pgEnum("inspection_status", [
   "pending",
@@ -237,6 +258,7 @@ export const inspectionStatusEnum = pgEnum("inspection_status", [
 export const inspections = pgTable("inspections", {
   id: serial("id").primaryKey(),
   vehicle_id: integer("vehicle_id").references(() => vehicles.id).notNull(),
+  package_id: integer("package_id").references(() => inspectionPackages.id), // Which package this inspection belongs to
   dealer_id: integer("dealer_id").references(() => dealers.id), // Made optional for simplified system
   inspector_id: integer("inspector_id").references(() => inspectors.id),
   template_id: integer("template_id").references(() => inspectionTemplates.id), // Made optional

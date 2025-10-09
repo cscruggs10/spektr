@@ -90,16 +90,31 @@ export default function InspectorPortal() {
     queryKey: ["/api/runlists"],
   });
 
-  // Get inspections for selected inspector only - exclude completed ones
+  // Get inspections for selected inspector only - exclude completed ones and past auction dates
   const { data: inspections = [], isLoading: loadingInspections } = useQuery({
     queryKey: ["/api/inspections"],
     enabled: !!inspectorId,
     select: (data) => {
-      // Filter to only show inspections assigned to this inspector AND exclude completed ones
-      let filtered = data.filter((inspection: any) =>
-        inspection.inspector_id === parseInt(inspectorId) &&
-        inspection.status !== 'completed'
-      );
+      const now = new Date();
+
+      // Filter to only show inspections assigned to this inspector AND exclude completed ones AND past auction dates
+      let filtered = data.filter((inspection: any) => {
+        // Must be assigned to this inspector
+        if (inspection.inspector_id !== parseInt(inspectorId)) return false;
+
+        // Exclude completed inspections
+        if (inspection.status === 'completed') return false;
+
+        // Exclude inspections where auction date has passed
+        if (inspection.auction_start_date) {
+          const auctionDate = new Date(inspection.auction_start_date);
+          // Set to end of day to include inspections on auction day
+          auctionDate.setHours(23, 59, 59, 999);
+          if (auctionDate < now) return false;
+        }
+
+        return true;
+      });
 
       // Apply auction filter if selected
       if (selectedAuctionId && selectedAuctionId !== "all") {
@@ -112,7 +127,7 @@ export default function InspectorPortal() {
           return false;
         });
       }
-      
+
       // Sort by lane number first, then by run number
       return filtered.sort((a: any, b: any) => {
         // Handle both regular format and Auto Nation combined format
