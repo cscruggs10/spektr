@@ -245,6 +245,9 @@ export const insertInspectionPackageSchema = createInsertSchema(inspectionPackag
   inspection_date: z.string().datetime().optional().or(z.date().optional()),
 });
 
+export type InspectionPackage = typeof inspectionPackages.$inferSelect;
+export type InsertInspectionPackage = z.infer<typeof insertInspectionPackageSchema>;
+
 // Inspection status enum
 export const inspectionStatusEnum = pgEnum("inspection_status", [
   "pending",
