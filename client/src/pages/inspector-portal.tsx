@@ -1134,13 +1134,13 @@ export default function InspectorPortal() {
                         htmlFor="inspector-module-scan-upload"
                         className={`flex-1 inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
                           isUploadingPDF
-                            ? 'opacity-50 cursor-not-allowed bg-blue-400'
-                            : 'cursor-pointer bg-blue-600 hover:bg-blue-700'
+                            ? 'opacity-50 cursor-not-allowed bg-green-400'
+                            : 'cursor-pointer bg-green-600 hover:bg-green-700'
                         } text-white font-semibold py-6 text-base px-4`}
                         style={{ pointerEvents: isUploadingPDF ? 'none' : 'auto' }}
                       >
-                        <i className="fas fa-cloud-upload-alt mr-2 text-xl"></i>
-                        Select & Upload PDF
+                        <i className="fas fa-file-upload mr-2 text-xl"></i>
+                        📄 Tap to Select PDF
                       </label>
                     </div>
 
