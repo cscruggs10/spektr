@@ -622,7 +622,7 @@ export default function InspectorPortal() {
                       <div className="flex items-start gap-2">
                         <FileText className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-bold text-amber-900 text-sm sm:text-base mb-1">Questions for Inspector:</h4>
+                          <h4 className="font-bold text-amber-900 text-sm sm:text-base mb-1">Notes for Inspector:</h4>
                           <p className="text-xs sm:text-sm text-amber-900 font-bold whitespace-pre-wrap break-words">
                             {activeInspection.notes}
                           </p>
