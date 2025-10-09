@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Loader2, Play, CheckCircle, Car, Clock, MapPin, FileText, User, LogOut, Camera, Video, Mic, X } from "lucide-react";
+import { Loader2, Play, CheckCircle, Car, Clock, MapPin, FileText, User, LogOut, Camera, Video, X } from "lucide-react";
 import { format } from "date-fns";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -48,9 +48,6 @@ export default function InspectorPortal() {
   // Inspection form data
   const [moduleScanLink, setModuleScanLink] = useState<string>("");
   const [isUploadingPDF, setIsUploadingPDF] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
-  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
-  const [voiceNote, setVoiceNote] = useState<Blob | null>(null);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [isRecommended, setIsRecommended] = useState(false);
   const [language, setLanguage] = useState<Language>('en');
@@ -248,13 +245,6 @@ export default function InspectorPortal() {
       formData.append("module_scan_link", moduleScanLink);
       formData.append("is_recommended", isRecommended.toString());
 
-      // Only send voice note if it hasn't been transcribed yet
-      // (If voiceNote is still present, user didn't click "Transcribe to Notes")
-      if (voiceNote) {
-        formData.append("voice_note", voiceNote, "voice_note.webm");
-        formData.append("voice_language", language); // Send language preference
-      }
-
       const res = await apiRequest("PATCH", `/api/inspections/${inspectionId}`, formData);
       return await res.json();
     },
@@ -269,7 +259,6 @@ export default function InspectorPortal() {
       setActiveInspection(null);
       setInspectionNotes("");
       setModuleScanLink("");
-      setVoiceNote(null);
       setUploadedFiles([]);
       setIsRecommended(false);
       setSectionStatus({ photos: false, walkaroundVideo: false, engineVideo: false, notes: false });
@@ -283,91 +272,6 @@ export default function InspectorPortal() {
     }
   });
 
-  // Voice recording functions
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
-      const chunks: BlobPart[] = [];
-
-      recorder.ondataavailable = (e) => chunks.push(e.data);
-      recorder.onstop = () => {
-        const blob = new Blob(chunks, { type: 'audio/webm' });
-        setVoiceNote(blob);
-        stream.getTracks().forEach(track => track.stop());
-        // Mark notes section complete when voice note is recorded
-        setSectionStatus(prev => ({ ...prev, notes: true }));
-      };
-
-      recorder.start();
-      setMediaRecorder(recorder);
-      setIsRecording(true);
-    } catch (error) {
-      toast({
-        title: "Recording Error",
-        description: "Could not access microphone",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const stopRecording = () => {
-    if (mediaRecorder) {
-      mediaRecorder.stop();
-      setMediaRecorder(null);
-      setIsRecording(false);
-    }
-  };
-
-  // Transcribe voice note and add to notes
-  const transcribeVoiceNote = async () => {
-    if (!voiceNote) return;
-
-    const loadingToast = toast({
-      title: "Transcribing voice note...",
-      description: "Converting your voice to text",
-    });
-
-    try {
-      const formData = new FormData();
-      formData.append('audio', voiceNote, 'voice_note.webm');
-      formData.append('language', language);
-
-      const response = await fetch('/api/transcribe-voice', {
-        method: 'POST',
-        body: formData,
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        // Add transcribed text to existing notes
-        const separator = inspectionNotes.trim() ? '\n\n' : '';
-        setInspectionNotes(prev => prev + separator + result.transcription);
-
-        loadingToast.dismiss();
-        toast({
-          title: "Voice transcribed successfully!",
-          description: "Your voice note has been converted to text",
-        });
-
-        // Clear the voice note after successful transcription
-        setVoiceNote(null);
-        // Mark notes as complete
-        setSectionStatus(prev => ({ ...prev, notes: true }));
-      } else {
-        throw new Error(result.error || 'Transcription failed');
-      }
-    } catch (error) {
-      console.error('Transcription error:', error);
-      loadingToast.dismiss();
-      toast({
-        title: "Transcription failed",
-        description: "Could not convert voice to text. You can still submit with voice note.",
-        variant: "destructive",
-      });
-    }
-  };
 
   const selectedInspector = inspectors.find(i => i.id === parseInt(inspectorId));
 
@@ -710,6 +614,23 @@ export default function InspectorPortal() {
                     </div>
                   )}
                 </div>
+
+                {/* Inspection Notes from Creation */}
+                {activeInspection?.notes && (
+                  <div className="mt-3 pt-3 border-t border-gray-200">
+                    <div className="bg-amber-50 border-2 border-amber-300 rounded-lg p-3">
+                      <div className="flex items-start gap-2">
+                        <FileText className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-bold text-amber-900 text-sm sm:text-base mb-1">Questions for Inspector:</h4>
+                          <p className="text-xs sm:text-sm text-amber-900 font-bold whitespace-pre-wrap break-words">
+                            {activeInspection.notes}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -1166,76 +1087,6 @@ export default function InspectorPortal() {
                   </div>
                 </div>
 
-                {/* Voice Notes */}
-                <div className="space-y-2 sm:space-y-3">
-                  <h4 className="font-medium flex items-center text-sm sm:text-base">
-                    <Mic className="h-4 w-4 mr-2 text-purple-600" />
-                    Voice Notes
-                  </h4>
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className={`flex items-center gap-2 ${isRecording ? 'bg-red-50 text-red-700 border-red-300' : ''}`}
-                        onClick={isRecording ? stopRecording : startRecording}
-                      >
-                        <Mic className="h-4 w-4" />
-                        {isRecording ? 'Stop Recording' : 'Record Voice Note'}
-                      </Button>
-                      <span className="text-sm text-gray-500">
-                        {isRecording ? 'Recording... Tap to stop' : 'Record audio observations'}
-                      </span>
-                    </div>
-                    {voiceNote && (
-                      <div className="p-3 bg-purple-50 rounded border border-purple-200 space-y-3">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-green-600 font-medium">✓ Voice note recorded</span>
-                          <div className="flex gap-2">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                const audio = new Audio(URL.createObjectURL(voiceNote));
-                                audio.play();
-                              }}
-                              className="text-purple-600 border-purple-300 hover:bg-purple-50"
-                            >
-                              <Play className="h-3 w-3 mr-1" />
-                              Play
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setVoiceNote(null);
-                              }}
-                              className="text-red-600 border-red-300 hover:bg-red-50"
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="default"
-                          size="sm"
-                          onClick={transcribeVoiceNote}
-                          className="w-full bg-purple-600 hover:bg-purple-700 text-white"
-                        >
-                          <Mic className="h-4 w-4 mr-2" />
-                          Transcribe to Notes
-                        </Button>
-                        <p className="text-xs text-gray-600 text-center">
-                          Click to convert voice to text and add to notes field
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
               </div>
             </div>
 
@@ -1329,7 +1180,7 @@ export default function InspectorPortal() {
                 onChange={(e) => {
                   setInspectionNotes(e.target.value);
                   // Mark notes section complete if notes are entered
-                  if (e.target.value || voiceNote) {
+                  if (e.target.value.trim()) {
                     setSectionStatus(prev => ({ ...prev, notes: true }));
                   } else {
                     setSectionStatus(prev => ({ ...prev, notes: false }));
