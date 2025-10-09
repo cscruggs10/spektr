@@ -646,28 +646,28 @@ export default function InspectorPortal() {
 
       {/* Inspection Modal */}
       <Dialog open={showInspectionModal} onOpenChange={setShowInspectionModal}>
-        <DialogContent className={`max-w-2xl max-h-[90vh] overflow-y-auto ${
+        <DialogContent className={`w-full max-w-full sm:max-w-2xl max-h-[100vh] sm:max-h-[90vh] overflow-y-auto p-4 sm:p-6 ${
           isDaylightMode
             ? 'bg-yellow-50 border-4 border-black text-black'
             : ''
         }`}>
           <DialogHeader className={isDaylightMode ? 'border-b-4 border-black pb-4' : ''}>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div className="flex-1">
-                <DialogTitle className={`text-xl font-bold ${isDaylightMode ? 'text-2xl font-black text-black' : ''}`}>
+              <div className="flex-1 min-w-0">
+                <DialogTitle className={`text-lg sm:text-xl font-bold ${isDaylightMode ? 'text-xl sm:text-2xl font-black text-black' : ''}`}>
                   Vehicle Inspection
                 </DialogTitle>
-                <DialogDescription className={isDaylightMode ? 'text-lg font-bold text-gray-900' : ''}>
-                  Conducting inspection for {activeInspection?.vehicle?.year} {activeInspection?.vehicle?.make} {activeInspection?.vehicle?.model}
+                <DialogDescription className={`text-sm sm:text-base break-words ${isDaylightMode ? 'text-base sm:text-lg font-bold text-gray-900' : ''}`}>
+                  {activeInspection?.vehicle?.year} {activeInspection?.vehicle?.make} {activeInspection?.vehicle?.model}
                 </DialogDescription>
               </div>
               <Button
                 variant="outline"
-                size="lg"
+                size="sm"
                 onClick={() => setIsDaylightMode(!isDaylightMode)}
-                className={`min-w-[120px] ${isDaylightMode
-                  ? 'bg-black text-yellow-50 border-4 border-black hover:bg-gray-800 font-bold text-lg px-6 py-3'
-                  : 'border-2 border-yellow-500 text-yellow-600 hover:bg-yellow-50 font-semibold text-lg px-6 py-3'
+                className={`min-w-[100px] sm:min-w-[120px] ${isDaylightMode
+                  ? 'bg-black text-yellow-50 border-2 sm:border-4 border-black hover:bg-gray-800 font-bold text-sm sm:text-lg px-3 sm:px-6 py-2 sm:py-3'
+                  : 'border-2 border-yellow-500 text-yellow-600 hover:bg-yellow-50 font-semibold text-sm sm:text-lg px-3 sm:px-6 py-2 sm:py-3'
                 }`}
               >
                 {isDaylightMode ? '🌙 Normal' : '☀️ Daylight'}
@@ -1132,15 +1132,15 @@ export default function InspectorPortal() {
                       />
                       <label
                         htmlFor="inspector-module-scan-upload"
-                        className={`flex-1 inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
+                        className={`w-full inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
                           isUploadingPDF
                             ? 'opacity-50 cursor-not-allowed bg-green-400'
                             : 'cursor-pointer bg-green-600 hover:bg-green-700'
-                        } text-white font-semibold py-6 text-base px-4`}
+                        } text-white font-semibold py-4 sm:py-6 text-sm sm:text-base px-3 sm:px-4`}
                         style={{ pointerEvents: isUploadingPDF ? 'none' : 'auto' }}
                       >
-                        <i className="fas fa-file-upload mr-2 text-xl"></i>
-                        📄 Tap to Select PDF
+                        <i className="fas fa-file-upload mr-2 text-lg sm:text-xl"></i>
+                        <span className="whitespace-nowrap">📄 Select PDF</span>
                       </label>
                     </div>
 
