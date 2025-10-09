@@ -1081,8 +1081,11 @@ export default function InspectorPortal() {
                         id="inspector-module-scan-upload"
                         className="hidden"
                         onChange={async (e) => {
+                          console.log('File input onChange triggered');
                           const file = e.target.files?.[0];
-                          if (file) {
+                          console.log('Selected file:', file?.name, file?.size);
+
+                          if (file && activeInspection) {
                             setIsUploadingPDF(true);
                             setModuleScanLink('Uploading PDF...');
 
@@ -1090,8 +1093,10 @@ export default function InspectorPortal() {
                               const formData = new FormData();
                               formData.append("files", file);
 
+                              console.log('Uploading to inspection:', activeInspection.id);
                               const res = await apiRequest("POST", `/api/inspections/${activeInspection.id}/uploads`, formData);
                               const data = await res.json();
+                              console.log('Upload response:', data);
 
                               if (data.files && data.files.length > 0) {
                                 const uploadedUrl = data.files[0].url;
@@ -1115,6 +1120,13 @@ export default function InspectorPortal() {
                               // Reset file input
                               e.target.value = '';
                             }
+                          } else if (!activeInspection) {
+                            console.error('No active inspection!');
+                            toast({
+                              title: "Error",
+                              description: "No active inspection. Please start an inspection first.",
+                              variant: "destructive",
+                            });
                           }
                         }}
                       />
