@@ -155,7 +155,15 @@ const InspectionResultView = ({ inspectionResult }: { inspectionResult: any }) =
                       )}
                     </div>
                     <button
-                      onClick={() => window.open(link.url, '_blank')}
+                      onClick={() => {
+                        // Transform Cloudinary URL to force inline display
+                        let url = link.url;
+                        if (url.includes('cloudinary.com')) {
+                          // Add fl_attachment flag to force inline display
+                          url = url.replace('/upload/', '/upload/fl_attachment:false/');
+                        }
+                        window.open(url, '_blank');
+                      }}
                       className="px-4 py-2 bg-purple-600 text-white rounded text-sm hover:bg-purple-700 flex items-center"
                     >
                       📊 View Report
@@ -178,7 +186,15 @@ const InspectionResultView = ({ inspectionResult }: { inspectionResult: any }) =
                 )}
               </div>
               <button
-                onClick={() => window.open(inspectionResult.data.module_scan_link, '_blank')}
+                onClick={() => {
+                  // Transform Cloudinary URL to force inline display
+                  let url = inspectionResult.data.module_scan_link;
+                  if (url.includes('cloudinary.com')) {
+                    // Add fl_attachment flag to force inline display
+                    url = url.replace('/upload/', '/upload/fl_attachment:false/');
+                  }
+                  window.open(url, '_blank');
+                }}
                 className="px-4 py-2 bg-purple-600 text-white rounded text-sm hover:bg-purple-700 flex items-center"
               >
                 📊 View Report
