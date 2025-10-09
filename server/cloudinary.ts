@@ -25,6 +25,8 @@ const storage = new CloudinaryStorage({
       resourceType = 'video';
     } else if (file.mimetype.startsWith('audio/')) {
       resourceType = 'video'; // Cloudinary treats audio as video resource type
+    } else if (file.mimetype === 'application/pdf') {
+      resourceType = 'raw'; // PDFs are uploaded as raw files
     }
     
     // Add optimization parameters
@@ -63,10 +65,11 @@ export const cloudinaryUpload = multer({
   fileFilter: (req, file, cb) => {
     console.log(`Upload attempt - File: ${file.originalname}, MIME type: ${file.mimetype}`);
 
-    // Accept all image, video, and audio files (including mobile formats)
+    // Accept all image, video, audio files, and PDFs (including mobile formats)
     if (file.mimetype.startsWith('image/') ||
         file.mimetype.startsWith('video/') ||
-        file.mimetype.startsWith('audio/')) {
+        file.mimetype.startsWith('audio/') ||
+        file.mimetype === 'application/pdf') {
       cb(null, true);
     } else {
       console.log(`Rejected file type: ${file.mimetype}`);

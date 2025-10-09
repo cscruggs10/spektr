@@ -84,16 +84,17 @@ const mediaUpload = multer({
     fileSize: 50 * 1024 * 1024, // 50MB limit for media
   },
   fileFilter: (req, file, cb) => {
-    // Accept images and videos
+    // Accept images, videos, audio files, and PDFs
     if (
-      file.mimetype.startsWith("image/") || 
+      file.mimetype.startsWith("image/") ||
       file.mimetype.startsWith("video/") ||
-      file.mimetype === "audio/webm" || 
-      file.mimetype === "audio/mpeg"
+      file.mimetype === "audio/webm" ||
+      file.mimetype === "audio/mpeg" ||
+      file.mimetype === "application/pdf"
     ) {
       return cb(null, true);
     }
-    cb(new Error("Only images, videos, and audio files are allowed"));
+    cb(new Error("Only images, videos, audio files, and PDFs are allowed"));
   },
 });
 

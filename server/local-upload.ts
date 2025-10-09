@@ -29,13 +29,14 @@ export const localUpload = multer({
     fileSize: 100 * 1024 * 1024, // 100MB limit
   },
   fileFilter: (req, file, cb) => {
-    // Accept images, videos, and audio files
+    // Accept images, videos, audio files, and PDFs
     const allowedTypes = [
       'image/jpeg', 'image/jpg', 'image/png', 'image/gif',
       'video/mp4', 'video/mov', 'video/webm', 'video/quicktime',
-      'audio/webm', 'audio/mp3', 'audio/wav', 'audio/mpeg'
+      'audio/webm', 'audio/mp3', 'audio/wav', 'audio/mpeg',
+      'application/pdf'
     ];
-    
+
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {

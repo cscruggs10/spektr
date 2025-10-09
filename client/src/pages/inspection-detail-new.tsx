@@ -1559,17 +1559,76 @@ export default function InspectionDetail() {
                               <div className="space-y-4">
                                 <div className="p-4 border rounded-lg bg-white">
                                   <label className="block text-sm font-medium mb-2">Module Scan Report</label>
+                                  <p className="text-xs text-blue-600 mb-3">
+                                    💡 Tip: After scanning, use Share → Copy in your scanning app, then paste here
+                                  </p>
                                   <div className="space-y-3">
                                     <div className="flex gap-2">
-                                      <Input
-                                        type="url"
-                                        placeholder="Paste URL or click Upload PDF button"
-                                        value={moduleScanLink}
-                                        onChange={(e) => setModuleScanLink(e.target.value)}
-                                        onPaste={handleModuleScanPaste}
-                                        disabled={isUploadingPDF}
-                                        className="flex-1"
-                                      />
+                                      <div className="flex-1 relative">
+                                        <Input
+                                          type="text"
+                                          placeholder="Paste PDF here or click Upload PDF button"
+                                          value={moduleScanLink}
+                                          onChange={(e) => setModuleScanLink(e.target.value)}
+                                          onPaste={async (e) => {
+                                            console.log('Paste event in module scan');
+
+                                            // Try to get PDF from clipboard
+                                            const items = e.clipboardData?.items;
+                                            if (!items) return;
+
+                                            for (let i = 0; i < items.length; i++) {
+                                              const item = items[i];
+                                              console.log('Clipboard item:', item.type, item.kind);
+
+                                              // Check if it's a file (PDF)
+                                              if (item.kind === 'file' && item.type === 'application/pdf') {
+                                                e.preventDefault();
+                                                const file = item.getAsFile();
+
+                                                if (file) {
+                                                  console.log('PDF file pasted:', file.name, file.size);
+                                                  setIsUploadingPDF(true);
+                                                  setModuleScanLink('Uploading pasted PDF...');
+
+                                                  try {
+                                                    const formData = new FormData();
+                                                    formData.append("files", file);
+
+                                                    const res = await apiRequest("POST", `/api/inspections/${id}/uploads`, formData);
+                                                    const data = await res.json();
+
+                                                    if (data.files && data.files.length > 0) {
+                                                      const uploadedUrl = data.files[0].url;
+                                                      setModuleScanLink(uploadedUrl);
+
+                                                      toast({
+                                                        title: "PDF Pasted Successfully!",
+                                                        description: "Module scan PDF has been uploaded from clipboard",
+                                                      });
+                                                    }
+                                                  } catch (error) {
+                                                    console.error('Error uploading pasted PDF:', error);
+                                                    setModuleScanLink('');
+                                                    toast({
+                                                      title: "Upload Failed",
+                                                      description: "Failed to upload the pasted PDF. Please try the upload button.",
+                                                      variant: "destructive",
+                                                    });
+                                                  } finally {
+                                                    setIsUploadingPDF(false);
+                                                  }
+                                                }
+                                                return;
+                                              }
+                                            }
+
+                                            // If no PDF file found, allow normal paste (for URLs)
+                                            console.log('No PDF file in clipboard, allowing normal paste');
+                                          }}
+                                          disabled={isUploadingPDF}
+                                          className="flex-1"
+                                        />
                                       <input
                                         type="file"
                                         accept=".pdf,application/pdf"
