@@ -1121,7 +1121,21 @@ export default function InspectorPortal() {
                       <Button
                         type="button"
                         size="lg"
-                        onClick={() => document.getElementById('inspector-module-scan-upload')?.click()}
+                        onClick={() => {
+                          console.log('Upload button clicked');
+                          const fileInput = document.getElementById('inspector-module-scan-upload');
+                          console.log('File input element:', fileInput);
+                          if (fileInput) {
+                            (fileInput as HTMLInputElement).click();
+                          } else {
+                            console.error('File input not found!');
+                            toast({
+                              title: "Error",
+                              description: "Upload button not working. Please refresh the page.",
+                              variant: "destructive",
+                            });
+                          }
+                        }}
                         disabled={isUploadingPDF}
                         className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-6 text-base"
                       >
