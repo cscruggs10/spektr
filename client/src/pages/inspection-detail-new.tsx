@@ -1629,6 +1629,7 @@ export default function InspectionDetail() {
                                           disabled={isUploadingPDF}
                                           className="flex-1"
                                         />
+                                      </div>
                                       <input
                                         type="file"
                                         accept=".pdf,application/pdf"
