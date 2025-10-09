@@ -1068,11 +1068,11 @@ export default function InspectorPortal() {
                 <div className="space-y-3">
                   <h4 className="font-medium">Full Module Scan</h4>
                   <p className="text-xs text-blue-600">
-                    💡 Tip: After scanning, use Share → Copy in your scanning app, then paste below
+                    💡 Tip: After scanning, use Share → Copy in your scanning app, then click "Paste PDF" below
                   </p>
                   <div className="space-y-2">
                     <Label htmlFor="module-scan-link">Module Scan Report</Label>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
                       <input
                         id="module-scan-link"
                         type="text"
@@ -1181,6 +1181,70 @@ export default function InspectorPortal() {
                           }
                         }}
                       />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={async () => {
+                          try {
+                            // Try to read from clipboard using Async Clipboard API
+                            const clipboardItems = await navigator.clipboard.read();
+
+                            for (const item of clipboardItems) {
+                              console.log('Clipboard item types:', item.types);
+
+                              // Look for PDF in clipboard
+                              for (const type of item.types) {
+                                if (type === 'application/pdf') {
+                                  const blob = await item.getType(type);
+                                  const file = new File([blob], 'module_scan.pdf', { type: 'application/pdf' });
+
+                                  console.log('PDF from clipboard:', file.name, file.size);
+                                  setIsUploadingPDF(true);
+                                  setModuleScanLink('Uploading pasted PDF...');
+
+                                  const formData = new FormData();
+                                  formData.append("files", file);
+
+                                  const res = await apiRequest("POST", `/api/inspections/${activeInspection.id}/uploads`, formData);
+                                  const data = await res.json();
+
+                                  if (data.files && data.files.length > 0) {
+                                    const uploadedUrl = data.files[0].url;
+                                    setModuleScanLink(uploadedUrl);
+
+                                    toast({
+                                      title: "PDF Pasted Successfully!",
+                                      description: "Module scan PDF has been uploaded from clipboard",
+                                    });
+                                  }
+                                  setIsUploadingPDF(false);
+                                  return;
+                                }
+                              }
+                            }
+
+                            // No PDF found in clipboard
+                            toast({
+                              title: "No PDF in Clipboard",
+                              description: "Please copy the PDF first using Share → Copy in your scanning app",
+                              variant: "destructive",
+                            });
+                          } catch (error) {
+                            console.error('Clipboard read error:', error);
+                            toast({
+                              title: "Clipboard Access Failed",
+                              description: "Unable to read from clipboard. Try using the Upload PDF button instead.",
+                              variant: "destructive",
+                            });
+                          }
+                        }}
+                        disabled={isUploadingPDF}
+                        className="whitespace-nowrap bg-green-50 text-green-700 border-green-300 hover:bg-green-100"
+                      >
+                        <i className="fas fa-paste mr-2"></i>
+                        Paste PDF
+                      </Button>
+
                       <Button
                         type="button"
                         variant="outline"
