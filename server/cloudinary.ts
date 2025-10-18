@@ -45,11 +45,11 @@ const storage = new CloudinaryStorage({
     }
     
     // Add optimization for videos
+    // Note: Removed eager_async to avoid unhandled promise rejections
+    // Videos will be transcoded on-demand instead of async
     if (file.mimetype.startsWith('video/')) {
-      baseParams.eager = [
-        { quality: 'auto:good', video_codec: 'h264' }
-      ];
-      baseParams.eager_async = true;
+      baseParams.quality = 'auto:good';
+      // Don't use eager transformations to avoid async processing issues
     }
     
     return baseParams;

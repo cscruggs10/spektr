@@ -101,11 +101,33 @@ app.use((req, res, next) => {
     });
 
     process.on('unhandledRejection', (reason: any, promise) => {
-      log(`Unhandled Rejection at: ${promise}, reason: ${reason}`, "error");
+      // Improved logging to capture full error details
+      log(`Unhandled Rejection detected`, "error");
 
-      // Log stack trace if available
-      if (reason && reason.stack) {
-        log(`Stack: ${reason.stack}`, "error");
+      // Log the promise (without circular references)
+      try {
+        log(`Promise: ${JSON.stringify(promise, null, 2)}`, "error");
+      } catch (e) {
+        log(`Promise: [unable to stringify - likely circular reference]`, "error");
+      }
+
+      // Log the reason with all available details
+      if (reason) {
+        if (reason.stack) {
+          log(`Reason (with stack): ${reason.stack}`, "error");
+        } else if (reason.message) {
+          log(`Reason (message): ${reason.message}`, "error");
+        } else if (typeof reason === 'object') {
+          try {
+            log(`Reason (object): ${JSON.stringify(reason, null, 2)}`, "error");
+          } catch (e) {
+            log(`Reason: ${String(reason)}`, "error");
+          }
+        } else {
+          log(`Reason: ${String(reason)}`, "error");
+        }
+      } else {
+        log(`Reason: [undefined]`, "error");
       }
 
       // Don't exit for upload/network errors - just log them
@@ -115,7 +137,8 @@ app.use((req, res, next) => {
                            reasonStr.includes('multer') ||
                            reasonStr.includes('ECONNRESET') ||
                            reasonStr.includes('ETIMEDOUT') ||
-                           reasonStr.includes('ENOTFOUND');
+                           reasonStr.includes('ENOTFOUND') ||
+                           reasonStr.includes('transformation');
 
       if (isUploadError) {
         log('Upload-related error detected - continuing server operation', "error");
