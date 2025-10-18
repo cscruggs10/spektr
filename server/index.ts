@@ -132,13 +132,23 @@ app.use((req, res, next) => {
 
       // Don't exit for upload/network errors - just log them
       const reasonStr = String(reason);
+      const reasonMessage = reason?.message || '';
+      const reasonName = reason?.name || '';
+      const httpCode = reason?.http_code || reason?.exception?.http_code;
+
       const isUploadError = reasonStr.includes('upload') ||
                            reasonStr.includes('cloudinary') ||
                            reasonStr.includes('multer') ||
                            reasonStr.includes('ECONNRESET') ||
                            reasonStr.includes('ETIMEDOUT') ||
                            reasonStr.includes('ENOTFOUND') ||
-                           reasonStr.includes('transformation');
+                           reasonStr.includes('transformation') ||
+                           reasonStr.includes('UnexpectedResponse') ||
+                           reasonMessage.includes('status code') ||
+                           reasonName === 'UnexpectedResponse' ||
+                           httpCode === 502 ||
+                           httpCode === 503 ||
+                           httpCode === 504;
 
       if (isUploadError) {
         log('Upload-related error detected - continuing server operation', "error");
