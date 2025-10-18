@@ -867,6 +867,12 @@ export class DatabaseStorage implements IStorage {
 
   async deleteInspection(id: number): Promise<boolean> {
     try {
+      // First, delete related inspection_results to avoid foreign key constraint violation
+      await db
+        .delete(inspectionResults)
+        .where(eq(inspectionResults.inspection_id, id));
+
+      // Then delete the inspection itself
       const [deletedInspection] = await db
         .delete(inspections)
         .where(eq(inspections.id, id))
