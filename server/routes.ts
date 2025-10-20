@@ -3387,13 +3387,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const expiredInspections = allInspections.filter(inspection => {
         const createdDate = new Date(inspection.created_at);
         const scheduledDate = inspection.scheduled_date ? new Date(inspection.scheduled_date) : null;
-        
+
+        // Only delete pending/assigned inspections (never delete completed or in_progress)
+        if (inspection.status !== 'pending' && inspection.status !== 'assigned') {
+          return false;
+        }
+
         // Check if inspection was created before today and is still pending/assigned
-        const isExpired = createdDate < today && (inspection.status === 'pending' || inspection.status === 'assigned');
-        
+        const isExpired = createdDate < today;
+
         // Also check if scheduled date is in the past (before today)
         const isScheduledExpired = scheduledDate && scheduledDate < today;
-        
+
         return isExpired || isScheduledExpired;
       });
 
@@ -4043,13 +4048,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const expiredInspections = allInspections.filter(inspection => {
           const createdDate = new Date(inspection.created_at);
           const scheduledDate = inspection.scheduled_date ? new Date(inspection.scheduled_date) : null;
-          
+
+          // Only delete pending/assigned inspections (never delete completed or in_progress)
+          if (inspection.status !== 'pending' && inspection.status !== 'assigned') {
+            return false;
+          }
+
           // Check if inspection was created before today and is still pending/assigned
-          const isExpired = createdDate < today && (inspection.status === 'pending' || inspection.status === 'assigned');
-          
+          const isExpired = createdDate < today;
+
           // Also check if scheduled date is in the past (before today)
           const isScheduledExpired = scheduledDate && scheduledDate < today;
-          
+
           return isExpired || isScheduledExpired;
         });
         
