@@ -2596,12 +2596,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/inspections/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
+
+      // Validate that ID is a valid number
+      if (isNaN(id)) {
+        return res.status(404).json({ error: "API endpoint not found" });
+      }
+
       const inspection = await storage.getInspection(id);
-      
+
       if (!inspection) {
         return res.status(404).json({ error: "Inspection not found" });
       }
-      
+
       res.json(inspection);
     } catch (error) {
       console.error("Error fetching inspection:", error);
@@ -3154,7 +3160,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update inspection status to completed (skipped inspections are complete, just not fully inspected)
       await storage.updateInspection(inspectionId, {
         status: "completed",
-        completion_date: new Date().toISOString()
+        completion_date: new Date()
       });
 
       // Log activity
