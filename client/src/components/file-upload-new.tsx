@@ -3,17 +3,20 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
-import { 
-  Upload, 
+import {
+  Upload,
   X,
-  Image as ImageIcon, 
+  Image as ImageIcon,
   FileVideo,
   FilePlus,
   FileAudio,
-  AlertCircle
+  AlertCircle,
+  WifiOff,
+  CloudOff
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { videoStorage } from "@/lib/video-storage";
 
 // Types for the FileUpload component props
 export interface FileUploadProps {
@@ -47,6 +50,9 @@ export function FileUpload({
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [retryStatus, setRetryStatus] = useState<string | null>(null);
+  const [storedLocally, setStoredLocally] = useState(false);
+  const [videoCount, setVideoCount] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Convert maxSize from MB to bytes for file validation
@@ -134,24 +140,42 @@ export function FileUpload({
     // Upload the files
     try {
       setUploading(true);
-      
+      setRetryStatus(null);
+
       // Simple progress simulation
       const progressInterval = setInterval(() => {
         setProgress((prevProgress) => {
-          if (prevProgress >= 95) {
+          if (prevProgress >= 90) {
             clearInterval(progressInterval);
             return prevProgress;
           }
           return prevProgress + 5;
         });
-      }, 100);
-      
-      // Make the API request
-      const response = await apiRequest("POST", endpoint, formData);
+      }, 200);
+
+      // Listen for retry attempts in console
+      const originalConsoleLog = console.log;
+      console.log = (...args) => {
+        if (args[0] && typeof args[0] === 'string' && args[0].includes('Upload attempt')) {
+          setRetryStatus(args[0]);
+        }
+        originalConsoleLog(...args);
+      };
+
+      // Make the API request with reasonable timeout - don't make inspectors wait forever
+      const response = await apiRequest("POST", endpoint, formData, {
+        timeout: 90000, // 90 seconds max per attempt
+        retries: 1, // Only 1 retry - if it fails twice, store locally
+        retryDelay: 2000, // 2 second delay before retry
+      });
       const data = await response.json();
-      
+
+      // Restore console.log
+      console.log = originalConsoleLog;
+
       clearInterval(progressInterval);
       setProgress(100);
+      setRetryStatus(null);
       
       // Handle successful upload
       if (response.ok) {
@@ -179,11 +203,75 @@ export function FileUpload({
         throw new Error(data.error || "Upload failed");
       }
     } catch (err) {
-      // Handle errors
+      // Handle errors - store videos locally if upload failed
       const error = err instanceof Error ? err : new Error("Unknown error occurred");
+
+      // Check if this is a network/timeout error and we have video files
+      const isNetworkError = error.message.includes('timeout') ||
+                             error.message.includes('network') ||
+                             error.message.includes('fetch');
+
+      const videoFiles = Array.from(fileList).filter(f => f.type.startsWith('video/'));
+
+      if (isNetworkError && videoFiles.length > 0) {
+        // Store videos locally for later sync
+        try {
+          // Extract inspection ID from endpoint (e.g., /api/inspections/123/uploads)
+          const inspectionIdMatch = endpoint.match(/\/inspections\/(\d+)\//);
+          const inspectionId = inspectionIdMatch ? parseInt(inspectionIdMatch[1]) : 0;
+
+          if (inspectionId) {
+            // Store each video file
+            for (const videoFile of videoFiles) {
+              await videoStorage.saveVideo({
+                inspectionId,
+                file: videoFile,
+                endpoint,
+              });
+            }
+
+            setStoredLocally(true);
+            setVideoCount(videoFiles.length);
+
+            // Show success toast for local storage
+            toast({
+              title: "Videos Saved Locally",
+              description: `${videoFiles.length} video(s) will sync automatically when connection improves`,
+              duration: 5000,
+            });
+
+            // Still call onSuccess since videos are stored locally
+            if (onSuccess) {
+              onSuccess({
+                status: 'stored_locally',
+                count: videoFiles.length,
+                message: 'Videos stored locally for later sync'
+              });
+            }
+
+            // Reset component state
+            setTimeout(() => {
+              setUploading(false);
+              setProgress(0);
+              setStoredLocally(false);
+
+              // Clear the file input
+              if (inputRef.current) {
+                inputRef.current.value = "";
+              }
+            }, 2000);
+
+            return; // Don't show error since we handled it
+          }
+        } catch (storageError) {
+          console.error('Failed to store videos locally:', storageError);
+          // Fall through to show error
+        }
+      }
+
       setError(error.message);
       onError?.(error);
-      
+
       // Show error toast
       toast({
         title: "Upload Failed",
@@ -277,14 +365,36 @@ export function FileUpload({
                 Max {maxFiles} file{maxFiles === 1 ? "" : "s"}, up to {maxSize}MB each
               </p>
             </>
+          ) : storedLocally ? (
+            <>
+              <div className="flex flex-col items-center justify-center w-full">
+                <CloudOff className="h-10 w-10 text-yellow-600 mb-2" />
+                <span className="text-sm font-medium mb-1 text-yellow-600">
+                  Videos Saved Locally
+                </span>
+                <p className="text-xs text-muted-foreground text-center">
+                  {videoCount} video(s) will sync when connection improves
+                </p>
+                <p className="text-xs text-green-600 mt-2">
+                  You can continue with your inspection
+                </p>
+              </div>
+            </>
           ) : (
             <>
               <div className="flex flex-col items-center justify-center w-full">
-                <span className="text-sm font-medium mb-2">Uploading...</span>
+                <span className="text-sm font-medium mb-2">
+                  {retryStatus ? "Retrying upload..." : "Uploading..."}
+                </span>
                 <Progress value={progress} className="w-full h-2" />
                 <span className="text-xs text-muted-foreground mt-1">
-                  {progress}% complete
+                  {retryStatus ? retryStatus : `${progress}% complete`}
                 </span>
+                {retryStatus && (
+                  <span className="text-xs text-yellow-600 mt-1">
+                    Poor connection detected - retrying automatically
+                  </span>
+                )}
               </div>
             </>
           )}

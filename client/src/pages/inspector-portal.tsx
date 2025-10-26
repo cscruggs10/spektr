@@ -13,6 +13,8 @@ import { format } from "date-fns";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation, type Language } from "@/lib/translations";
+import { VideoSyncStatus } from "@/components/video-sync-status";
+import { videoStorage } from "@/lib/video-storage";
 
 function formatDateTime(date: string | Date | null) {
   if (!date) return "N/A";
@@ -421,6 +423,11 @@ export default function InspectorPortal() {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Video Sync Status - Shows when there are pending videos */}
+        <div className="mb-6">
+          <VideoSyncStatus />
+        </div>
+
         <div className="mb-8">
           <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">{t('myAssignedInspections')}</h2>
           <p className="text-gray-600 mt-2 text-lg">{t('viewAndManageInspections')}</p>
@@ -871,16 +878,16 @@ export default function InspectorPortal() {
                           const file = e.target.files[0];
                           console.log('Inspector portal walkaround video selected:', file.name, file.type);
                           console.log('Video size:', (file.size / 1024 / 1024).toFixed(2), 'MB');
-                          
+
                           // Show loading message with video size
                           const loadingToast = toast({
                             title: "Uploading walkaround video...",
                             description: `Processing ${(file.size / 1024 / 1024).toFixed(1)}MB video. This may take a moment.`,
                           });
-                          
+
                           const formData = new FormData();
                           formData.append("files", file);
-                          
+
                           try {
                             const res = await fetch(`/api/inspections/${activeInspection.id}/uploads`, {
                               method: 'POST',
@@ -902,11 +909,47 @@ export default function InspectorPortal() {
                           } catch (error) {
                             console.error('Inspector portal walkaround video upload error:', error);
                             loadingToast.dismiss();
-                            toast({
-                              title: "Video upload failed",
-                              description: error instanceof Error ? error.message : 'Unknown error',
-                              variant: "destructive",
-                            });
+
+                            // Check if this is a network error - store video locally
+                            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                            const isNetworkError = errorMessage.includes('timeout') ||
+                                                 errorMessage.includes('network') ||
+                                                 errorMessage.includes('fetch') ||
+                                                 !navigator.onLine;
+
+                            if (isNetworkError) {
+                              // Store video locally for later sync
+                              try {
+                                await videoStorage.saveVideo({
+                                  inspectionId: activeInspection.id,
+                                  file: file,
+                                  endpoint: `/api/inspections/${activeInspection.id}/uploads`,
+                                });
+
+                                // Mark as complete since video is stored locally
+                                setUploadedFiles(prev => [...prev, file]);
+                                setSectionStatus(prev => ({ ...prev, walkaroundVideo: true }));
+
+                                toast({
+                                  title: "Video saved locally",
+                                  description: "Walkaround video will sync automatically when connection improves",
+                                  duration: 5000,
+                                });
+                              } catch (storageError) {
+                                console.error('Failed to store video locally:', storageError);
+                                toast({
+                                  title: "Video upload failed",
+                                  description: "Unable to upload or store video. Please try again.",
+                                  variant: "destructive",
+                                });
+                              }
+                            } else {
+                              toast({
+                                title: "Video upload failed",
+                                description: errorMessage,
+                                variant: "destructive",
+                              });
+                            }
                           }
                         }
                       }}
@@ -946,16 +989,16 @@ export default function InspectorPortal() {
                           const file = e.target.files[0];
                           console.log('Inspector portal engine video selected:', file.name, file.type);
                           console.log('Video size:', (file.size / 1024 / 1024).toFixed(2), 'MB');
-                          
+
                           // Show loading message with video size
                           const loadingToast = toast({
                             title: "Uploading engine video...",
                             description: `Processing ${(file.size / 1024 / 1024).toFixed(1)}MB video. This may take a moment.`,
                           });
-                          
+
                           const formData = new FormData();
                           formData.append("files", file);
-                          
+
                           try {
                             const res = await fetch(`/api/inspections/${activeInspection.id}/uploads`, {
                               method: 'POST',
@@ -977,11 +1020,47 @@ export default function InspectorPortal() {
                           } catch (error) {
                             console.error('Inspector portal engine video upload error:', error);
                             loadingToast.dismiss();
-                            toast({
-                              title: "Video upload failed",
-                              description: error instanceof Error ? error.message : 'Unknown error',
-                              variant: "destructive",
-                            });
+
+                            // Check if this is a network error - store video locally
+                            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                            const isNetworkError = errorMessage.includes('timeout') ||
+                                                 errorMessage.includes('network') ||
+                                                 errorMessage.includes('fetch') ||
+                                                 !navigator.onLine;
+
+                            if (isNetworkError) {
+                              // Store video locally for later sync
+                              try {
+                                await videoStorage.saveVideo({
+                                  inspectionId: activeInspection.id,
+                                  file: file,
+                                  endpoint: `/api/inspections/${activeInspection.id}/uploads`,
+                                });
+
+                                // Mark as complete since video is stored locally
+                                setUploadedFiles(prev => [...prev, file]);
+                                setSectionStatus(prev => ({ ...prev, engineVideo: true }));
+
+                                toast({
+                                  title: "Video saved locally",
+                                  description: "Engine video will sync automatically when connection improves",
+                                  duration: 5000,
+                                });
+                              } catch (storageError) {
+                                console.error('Failed to store video locally:', storageError);
+                                toast({
+                                  title: "Video upload failed",
+                                  description: "Unable to upload or store video. Please try again.",
+                                  variant: "destructive",
+                                });
+                              }
+                            } else {
+                              toast({
+                                title: "Video upload failed",
+                                description: errorMessage,
+                                variant: "destructive",
+                              });
+                            }
                           }
                         }
                       }}

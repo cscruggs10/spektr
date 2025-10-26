@@ -2,11 +2,13 @@ import { v2 as cloudinary } from 'cloudinary';
 import { CloudinaryStorage } from 'multer-storage-cloudinary';
 import multer from 'multer';
 
-// Configure Cloudinary
+// Configure Cloudinary with extended timeouts for poor network conditions
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
+  // Extended timeout for remote inspection sites with poor connectivity
+  timeout: 600000, // 10 minutes
 });
 
 // Configure Cloudinary storage for multer
@@ -89,29 +91,65 @@ export function handleMulterUpload(multerMiddleware: any) {
         if (err.code === 'LIMIT_FILE_SIZE') {
           return res.status(413).json({
             error: 'File too large',
-            message: 'File size exceeds 200MB limit'
+            message: 'File size exceeds 200MB limit',
+            retryable: false
           });
         }
 
         if (err.code === 'LIMIT_UNEXPECTED_FILE') {
           return res.status(400).json({
             error: 'Too many files',
-            message: 'Maximum 10 files allowed per upload'
+            message: 'Maximum 10 files allowed per upload',
+            retryable: false
           });
         }
 
-        // Handle Cloudinary errors
+        // Handle timeout errors
+        if (err.code === 'ETIMEDOUT' || err.code === 'ESOCKETTIMEDOUT' ||
+            (err.message && (err.message.includes('timeout') || err.message.includes('ETIMEDOUT')))) {
+          console.error('Upload timeout detected - likely poor network connection');
+          return res.status(504).json({
+            error: 'Upload timeout',
+            message: 'Upload timed out due to slow connection. The app will automatically retry.',
+            retryable: true
+          });
+        }
+
+        // Handle Cloudinary-specific errors
         if (err.message && err.message.includes('Cloudinary')) {
           return res.status(503).json({
             error: 'Upload service error',
-            message: 'Failed to upload to cloud storage. Please try again.'
+            message: 'Failed to upload to cloud storage. Please try again.',
+            retryable: true
           });
         }
 
-        // Generic error
-        return res.status(500).json({
+        // Handle network errors (ECONNRESET, ECONNREFUSED, etc.)
+        if (err.code && (err.code.startsWith('ECON') || err.code === 'ENOTFOUND')) {
+          console.error('Network error during upload:', err.code);
+          return res.status(503).json({
+            error: 'Network error',
+            message: 'Network connection issue. The app will automatically retry.',
+            retryable: true
+          });
+        }
+
+        // Handle Cloudinary HTTP errors (502, 503, 504)
+        if (err.http_code && [502, 503, 504].includes(err.http_code)) {
+          console.error('Cloudinary service error:', err.http_code);
+          return res.status(503).json({
+            error: 'Upload service temporarily unavailable',
+            message: 'Upload service is temporarily unavailable. The app will automatically retry.',
+            retryable: true
+          });
+        }
+
+        // Generic error - assume retryable for 5xx errors
+        const isServerError = err.statusCode >= 500 && err.statusCode < 600;
+        return res.status(err.statusCode || 500).json({
           error: 'Upload failed',
-          message: err.message || 'Unknown upload error occurred'
+          message: err.message || 'Unknown upload error occurred',
+          retryable: isServerError
         });
       }
 
