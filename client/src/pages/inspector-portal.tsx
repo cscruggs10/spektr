@@ -8,13 +8,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Loader2, Play, CheckCircle, Car, Clock, MapPin, FileText, User, LogOut, Camera, Video, X } from "lucide-react";
+import { Loader2, Play, CheckCircle, Car, Clock, MapPin, FileText, User, LogOut, Camera, Video, X, CloudOff } from "lucide-react";
 import { format } from "date-fns";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation, type Language } from "@/lib/translations";
 import { VideoSyncStatus } from "@/components/video-sync-status";
 import { videoStorage } from "@/lib/video-storage";
+import { videoSyncService } from "@/lib/video-sync-service";
 
 function formatDateTime(date: string | Date | null) {
   if (!date) return "N/A";
@@ -51,6 +52,7 @@ export default function InspectorPortal() {
   const [moduleScanLink, setModuleScanLink] = useState<string>("");
   const [isUploadingPDF, setIsUploadingPDF] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [pendingVideos, setPendingVideos] = useState<number>(0);
   const [isRecommended, setIsRecommended] = useState(false);
   const [language, setLanguage] = useState<Language>('en');
   const [isDaylightMode, setIsDaylightMode] = useState(false);
@@ -81,6 +83,28 @@ export default function InspectorPortal() {
       setLanguage(currentInspector.language as 'en' | 'es');
     }
   }, [currentInspector]);
+
+  // Load pending videos from IndexedDB when inspection modal opens
+  useEffect(() => {
+    if (activeInspection) {
+      const updatePendingCount = async () => {
+        const count = await videoStorage.getPendingCountByInspection(activeInspection.id);
+        setPendingVideos(count);
+      };
+
+      updatePendingCount();
+
+      // Subscribe to sync status changes to update pending count
+      const unsubscribe = videoSyncService.onStatusChange(async (status) => {
+        if (status.type === 'success' || status.type === 'error') {
+          // Refresh pending count after sync attempt
+          updatePendingCount();
+        }
+      });
+
+      return () => unsubscribe();
+    }
+  }, [activeInspection]);
 
   // Get auctions for filter dropdown
   const { data: auctions = [] } = useQuery({
@@ -929,6 +953,7 @@ export default function InspectorPortal() {
                                 // Mark as complete since video is stored locally
                                 setUploadedFiles(prev => [...prev, file]);
                                 setSectionStatus(prev => ({ ...prev, walkaroundVideo: true }));
+                                setPendingVideos(prev => prev + 1);
 
                                 toast({
                                   title: "Video saved locally",
@@ -1040,6 +1065,7 @@ export default function InspectorPortal() {
                                 // Mark as complete since video is stored locally
                                 setUploadedFiles(prev => [...prev, file]);
                                 setSectionStatus(prev => ({ ...prev, engineVideo: true }));
+                                setPendingVideos(prev => prev + 1);
 
                                 toast({
                                   title: "Video saved locally",
@@ -1314,6 +1340,23 @@ export default function InspectorPortal() {
               </div>
             </div>
 
+            {/* Pending Videos Warning */}
+            {pendingVideos > 0 && (
+              <div className="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-3 sm:p-4">
+                <div className="flex items-start gap-2">
+                  <CloudOff className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-bold text-yellow-900 text-sm sm:text-base mb-1">
+                      {pendingVideos} video(s) pending sync
+                    </h4>
+                    <p className="text-xs sm:text-sm text-yellow-800">
+                      You can complete this inspection now. Videos stored locally will sync automatically when connection improves.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-3 sm:pt-4">
               <Button
@@ -1346,7 +1389,7 @@ export default function InspectorPortal() {
                 disabled={
                   completeInspectionMutation.isPending ||
                   !inspectionNotes.trim() ||
-                  uploadedFiles.length === 0
+                  (uploadedFiles.length === 0 && pendingVideos === 0)
                 }
                 className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-xs sm:text-sm py-2 sm:py-3"
               >
