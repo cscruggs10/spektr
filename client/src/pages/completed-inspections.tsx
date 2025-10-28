@@ -502,6 +502,7 @@ export default function CompletedInspections() {
                         <TableHead className="w-[200px]">Vehicle</TableHead>
                         <TableHead className="w-[120px]">Inspector</TableHead>
                         <TableHead className="w-[100px]">Status</TableHead>
+                        <TableHead className="min-w-[200px]">Notes</TableHead>
                         <TableHead className="w-[120px]">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -549,6 +550,27 @@ export default function CompletedInspections() {
                                   <Star className="h-3 w-3 mr-1" />
                                   REC
                                 </Badge>
+                              )}
+                              {inspection.result?.data?.skipped && (
+                                <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 border-yellow-300">
+                                  SKIPPED
+                                </Badge>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-sm text-gray-600">
+                            <div className="max-w-md space-y-1">
+                              {/* Always show creation notes */}
+                              <div className="line-clamp-2">
+                                {inspection.notes || 'No notes'}
+                              </div>
+
+                              {/* Additionally show skip info if inspection was skipped */}
+                              {inspection.result?.data?.skipped && (
+                                <div className="text-xs font-medium text-yellow-800 pt-1 border-t border-yellow-200">
+                                  SKIPPED: {inspection.result?.data?.skip_reason || 'Not specified'}
+                                  {inspection.result?.data?.skip_note && ` - ${inspection.result?.data?.skip_note}`}
+                                </div>
                               )}
                             </div>
                           </TableCell>

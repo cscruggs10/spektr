@@ -118,7 +118,7 @@ export interface IStorage {
     vinLast6?: string;
     laneNumber?: string;
     runNumber?: string;
-  }): Promise<(Inspection & { vehicle: Vehicle, dealer?: Dealer, inspector?: Inspector })[]>;
+  }): Promise<(Inspection & { vehicle: Vehicle, dealer?: Dealer, inspector?: Inspector, result?: InspectionResult })[]>;
   getInspection(id: number): Promise<Inspection | undefined>;
   createInspection(inspection: InsertInspection): Promise<Inspection>;
   updateInspection(id: number, data: Partial<InsertInspection>): Promise<Inspection | undefined>;
@@ -702,7 +702,7 @@ export class DatabaseStorage implements IStorage {
     vinLast6?: string;
     laneNumber?: string;
     runNumber?: string;
-  }): Promise<(Inspection & { vehicle: Vehicle, dealer?: Dealer, inspector?: Inspector })[]> {
+  }): Promise<(Inspection & { vehicle: Vehicle, dealer?: Dealer, inspector?: Inspector, result?: InspectionResult })[]> {
     let query = db.query.inspections.findMany({
       with: {
         vehicle: {
@@ -715,7 +715,8 @@ export class DatabaseStorage implements IStorage {
           }
         },
         dealer: true,
-        inspector: true
+        inspector: true,
+        result: true
       },
       orderBy: (inspections, { desc }) => [
         desc(inspections.created_at)
